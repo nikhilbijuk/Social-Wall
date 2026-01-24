@@ -2,7 +2,6 @@ import { useApp } from '../context/AppContext';
 import GlassCard from '../components/ui/GlassCard';
 import Badge from '../components/ui/Badge';
 import { cn } from '../lib/utils';
-import { Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function EventsPage() {

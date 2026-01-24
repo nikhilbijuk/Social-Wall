@@ -5,7 +5,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { cn } from '../lib/utils';
-import { Coffee, Wifi, Zap, Users, ArrowRight, Rss } from 'lucide-react';
+import { ArrowRight, Rss } from 'lucide-react';
 
 export default function ExplorePage() {
     const { facilityStatuses, updateFacilityStatus } = useApp();

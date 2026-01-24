@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import GlassCard from '../components/ui/GlassCard';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
-import { Users, Pizza, HelpCircle, Info, Send, Heart, MessageSquare, Terminal, Image as ImageIcon, X, Paperclip } from 'lucide-react';
+import { Users, Pizza, HelpCircle, Info, Send, Heart, MessageSquare, Terminal, X, Paperclip } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
