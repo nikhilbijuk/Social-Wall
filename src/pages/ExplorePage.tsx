@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import GlassCard from '../components/ui/GlassCard';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import { motion, useScroll, useTransform } from 'framer-motion';
