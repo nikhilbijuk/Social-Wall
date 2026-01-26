@@ -15,12 +15,15 @@ export default function SharePage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll to top of feed when new post added
+    // Auto-scroll to bottom of feed when new post added
     useEffect(() => {
-        if (posts.length > 0) {
-            // Optional: Auto-scroll logic if desired, keeping it manual for now
+        if (scrollRef.current) {
+            scrollRef.current.scrollTo({
+                top: scrollRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
         }
-    }, [posts.length]);
+    }, [posts]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -66,14 +69,14 @@ export default function SharePage() {
                 <header>
                     <div className="label-mono text-primary mb-1">Sector: Main_Lobby</div>
                     <h2 className="text-4xl font-black font-heading uppercase tracking-tighter leading-none">
-                        Comms_Grid
+                        Chats
                     </h2>
                 </header>
 
-                <GlassCard label="Command_Buffer" className="flex-1 flex flex-col p-6 min-h-[300px]">
+                <GlassCard className="flex-1 flex flex-col p-6 min-h-[300px]">
                     <textarea
                         className="w-full flex-1 bg-transparent text-lg font-medium text-white placeholder:text-white/20 focus:outline-none resize-none font-mono"
-                        placeholder="> Input signal data..."
+                        placeholder="> Type your message here"
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                         autoFocus
@@ -101,9 +104,10 @@ export default function SharePage() {
 
                     <div className="mt-4 space-y-4">
                         {/* Tags & Attachments Row */}
-                        <div className="flex items-center justify-between gap-2 bg-black/20 p-1 rounded-lg">
+                        <div className="flex flex-wrap items-center gap-2 bg-black/20 p-2 rounded-lg">
+
                             <div className="flex gap-1">
-                                {['Update', 'Question', 'Milestone'].map(tag => (
+                                {['Info', 'Doubts', 'Rank'].map(tag => (
                                     <button
                                         key={tag}
                                         onClick={() => setSelectedTag(tag)}
@@ -122,16 +126,23 @@ export default function SharePage() {
                             <div className="w-px h-6 bg-white/10 mx-1" />
 
                             <button
-                                onClick={() => fileInputRef.current?.click()}
-                                className={cn(
-                                    "p-2 rounded transition-colors flex items-center justify-center relative group",
-                                    selectedImage ? "text-primary bg-primary/10" : "text-white/40 hover:text-white hover:bg-white/5"
-                                )}
-                                title="Attach Media"
-                            >
-                                <Paperclip size={16} />
-                                {selectedImage && <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-primary rounded-full" />}
-                            </button>
+  onClick={() => fileInputRef.current?.click()}
+  className={cn(
+    "flex items-center gap-3 px-6 py-4 rounded-xl border-2 transition-all group mt-2",
+    selectedImage 
+      ? "bg-primary/20 border-primary text-primary" 
+      : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:border-white/30"
+  )}
+  title="Attach Media"
+>
+  <Paperclip size={28} className={cn(selectedImage && "animate-bounce")} />
+  <div className="text-left">
+    <span className="block font-bold uppercase tracking-wider text-sm">
+      {selectedImage ? "Media Attached" : "Attach Media"}
+    </span>
+    {!selectedImage && <span className="text-[10px] opacity-50">IMAGE_SIGNAL_01</span>}
+  </div>
+</button>
                             <input
                                 type="file"
                                 ref={fileInputRef}
@@ -147,7 +158,7 @@ export default function SharePage() {
                             disabled={!text.trim() && !selectedImage}
                             className="w-full shadow-hard h-12"
                         >
-                            TRANSMIT <Send size={16} className="ml-2" />
+                            SEND <Send size={16} className="ml-2" />
                         </Button>
                     </div>
                 </GlassCard>
@@ -166,7 +177,7 @@ export default function SharePage() {
                 <div className="flex items-center justify-between mb-4 px-2">
                     <div className="flex items-center gap-2 text-secondary animate-pulse">
                         <Terminal size={16} />
-                        <span className="label-mono">LIVE_LOG_STREAM</span>
+                        <span className="label-mono">LIVE_CHATS</span>
                     </div>
                     <div className="label-mono text-white/30">
                         {posts.length} SIGNALS

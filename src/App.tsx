@@ -1,8 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
-import LandingPage from './pages/LandingPage';
-import EventCodePage from './pages/EventCodePage';
 import EventPreviewPage from './pages/EventPreviewPage';
 import LoginPage from './pages/LoginPage';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -16,46 +14,26 @@ import DocsPage from './pages/DocsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useApp();
-  if (!isAuthenticated) {
-    return <Navigate to="/join" />;
-  }
+ // const { isAuthenticated } = useApp();
+ // if (!isAuthenticated) {
+ //   return <Navigate to="/join" />;
+  //}
   return <>{children}</>;
 }
-
 function MockRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/join" element={<EventCodePage />} />
-        <Route path="/preview" element={<EventPreviewPage />} />
+        {/* Public Routes */}
+        <Route path="/" element={<Navigate to="/dashboard/share" replace />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/preview" element={<EventPreviewPage />} />
+        <Route path="/docs" element={<DocsPage />} />
+        
+        {/* Redirect directly to your work */}
+        <Route path="/join" element={<Navigate to="/dashboard/share" replace />} />
 
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <Navigate to="/dashboard/share" replace />
-              {/* The Outlet should be here but DashboardLayout handles layout, 
-                                 we need nested routes or handle children. 
-                                 Wait, DashboardLayout renders {children}.
-                                 react-router-dom v6 uses nested routes with <Outlet>.
-                                 I'll adjust this structure to standard v6.
-                             */}
-            </DashboardLayout>
-          </ProtectedRoute>
-        }>
-          {/* 
-                      Wait, passing children to DashboardLayout in Route element is tricky.
-                      Better pattern:
-                      element={<DashboardLayout><Outlet /></DashboardLayout>}
-                      Then child routes.
-                    */}
-        </Route>
-
-        {/* 
-                  Correcting Route Structure:
-                */}
+        {/* The Main Dashboard Structure */}
         <Route
           path="/dashboard/*"
           element={
@@ -74,9 +52,8 @@ function MockRouter() {
           }
         />
 
-        <Route path="/docs" element={<DocsPage />} />
+        {/* Catch-all for broken links */}
         <Route path="*" element={<NotFoundPage />} />
-
       </Routes>
     </BrowserRouter>
   );
