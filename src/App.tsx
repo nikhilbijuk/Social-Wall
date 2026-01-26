@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AppProvider, useApp } from './context/AppContext';
+import { AppProvider } from './context/AppContext';
 import EventPreviewPage from './pages/EventPreviewPage';
 import LoginPage from './pages/LoginPage';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -8,8 +8,8 @@ import DashboardLayout from './layouts/DashboardLayout';
 import SharePage from './pages/SharePage';
 import EventsPage from './pages/EventsPage';
 import ExplorePage from './pages/ExplorePage';
-import ConnectPage from './pages/ConnectPage';
-import ProfilePage from './pages/ProfilePage';
+
+
 import DocsPage from './pages/DocsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -43,8 +43,7 @@ function MockRouter() {
                   <Route path="share" element={<SharePage />} />
                   <Route path="events" element={<EventsPage />} />
                   <Route path="explore" element={<ExplorePage />} />
-                  <Route path="connect" element={<ConnectPage />} />
-                  <Route path="profile" element={<ProfilePage />} />
+                  
                   <Route index element={<Navigate to="share" replace />} />
                 </Routes>
               </DashboardLayout>
