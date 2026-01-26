@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import { Send, Paperclip, X } from 'lucide-react';
 
 export default function SharePage() {
-  const { addPost, currentUser, posts } = useApp();
+  const { addPost, posts } = useApp();
   const [text, setText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -22,8 +22,6 @@ export default function SharePage() {
   const handlePost = () => {
     if (!text.trim() && !selectedImage) return;
     addPost({
-      authorId: currentUser?.id || 'anon',
-      authorName: currentUser?.name || 'Anonymous',
       content: text,
       type: 'update',
       tag: 'Update',
@@ -35,7 +33,6 @@ export default function SharePage() {
 
   return (
     <div className="max-w-6xl mx-auto h-full flex flex-col md:flex-row gap-6">
-      {/* Left Column: Input Area */}
       <div className="md:w-1/3 flex flex-col gap-6">
         <header>
           <h2 className="text-4xl font-black uppercase text-white">Posts</h2>
@@ -60,11 +57,7 @@ export default function SharePage() {
           <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/5">
             <div className="flex gap-2">
               <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" />
-              <button 
-                type="button" 
-                onClick={() => fileInputRef.current?.click()} 
-                className="text-white/40 hover:text-primary transition-colors"
-              >
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="text-white/40 hover:text-primary transition-colors">
                 <Paperclip size={20} />
               </button>
             </div>
@@ -76,7 +69,6 @@ export default function SharePage() {
         </GlassCard>
       </div>
 
-      {/* Right Column: Feed Area */}
       <div className="flex-1 flex flex-col">
         <div className="label-mono text-white/20 mb-4 flex justify-between">
           <span>Active_Feed</span>
@@ -85,9 +77,7 @@ export default function SharePage() {
         <div className="flex-1 overflow-y-auto space-y-4">
           {posts?.map((post) => (
             <GlassCard key={post.id} className="p-4 border-white/5">
-              <span className="label-mono text-primary text-[10px] font-bold uppercase italic">{post.authorName}</span>
               <p className="text-white/80 mt-1">{post.content}</p>
-              {/* IMAGE RENDERING LOGIC */}
               {post.imageUrl && (
                 <div className="mt-3 rounded overflow-hidden border border-white/10">
                   <img src={post.imageUrl} className="w-full h-auto object-cover" alt="Shared" />
