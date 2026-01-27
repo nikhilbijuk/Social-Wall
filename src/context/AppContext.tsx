@@ -1,8 +1,7 @@
 import { supabase } from '../lib/supabase'
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 
-
-// 2. Updated Post Interface to support images
+// 1. Post Interface
 export interface Post {
   id: string;
   content: string;
@@ -22,7 +21,24 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>([]);
 
-  // 3. Updated addPost function for Supabase Sync
+  // 2. Fetch posts from Supabase on mount
+  useEffect(() => {
+    const fetchPosts = async () => {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .order('timestamp', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching:', error.message);
+      } else if (data) {
+        setPosts(data);
+      }
+    };
+    fetchPosts();
+  }, []);
+
+  // 3. Add new post to Supabase
   const addPost = async (newPost: Omit<Post, 'id' | 'timestamp'>) => {
     const { data, error } = await supabase
       .from('posts')
