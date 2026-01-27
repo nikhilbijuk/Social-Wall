@@ -13,7 +13,8 @@ export interface Post {
 
 interface AppContextType {
   posts: Post[];
-  addPost: (post: Omit<Post, 'id' | 'timestamp'>) => Promise<void>;
+  // Updated addPost to accept an optional File object for the image upload
+  addPost: (post: Omit<Post, 'id' | 'timestamp'>, file?: File) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -38,15 +39,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
     fetchPosts();
   }, []);
 
-  // 3. Add new post to Supabase
-  const addPost = async (newPost: Omit<Post, 'id' | 'timestamp'>) => {
+  // 3. Updated addPost function for Real Image Uploads
+  const addPost = async (newPost: Omit<Post, 'id' | 'timestamp'>, file?: File) => {
+    let finalImageUrl = newPost.imageUrl;
+
+    // A. If a physical file is provided, upload it to Supabase Storage
+    if (file) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('post-images') // Make sure this bucket exists and is PUBLIC
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error('Upload Error:', uploadError.message);
+        // We continue with the post even if upload fails, or you can return
+      } else {
+        // B. Get the Public URL so it works on all devices
+        const { data } = supabase.storage.from('post-images').getPublicUrl(filePath);
+        finalImageUrl = data.publicUrl;
+      }
+    }
+
+    // C. Final Database Insert with the actual cloud URL
     const { data, error } = await supabase
       .from('posts')
       .insert([{ 
         content: newPost.content,
         type: newPost.type,
         tag: newPost.tag,
-        imageUrl: newPost.imageUrl,
+        imageUrl: finalImageUrl, 
         timestamp: Date.now() 
       }])
       .select();
