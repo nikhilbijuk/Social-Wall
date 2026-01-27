@@ -1,20 +1,21 @@
 import { supabase } from '../lib/supabase'
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 
-// 1. Post Interface
+// 1. Updated Post Interface to include likes_count
 export interface Post {
   id: string;
   content: string;
   type: 'update' | 'event' | 'alert';
   tag: string;
   imageUrl?: string; 
+  likes_count: number; // Added this line
   timestamp: number;
 }
 
 interface AppContextType {
   posts: Post[];
-  // Updated addPost to accept an optional File object for the image upload
-  addPost: (post: Omit<Post, 'id' | 'timestamp'>, file?: File) => Promise<void>;
+  addPost: (post: Omit<Post, 'id' | 'timestamp' | 'likes_count'>, file?: File) => Promise<void>;
+  handleLike: (postId: string, currentLikes: number) => Promise<void>; // Added this line
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -22,57 +23,62 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>([]);
 
-  // ... existing code above ...
-
   // 2. Fetch posts from Supabase on mount
+  const fetchPosts = async () => {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .order('timestamp', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching:', error.message);
+    } else if (data) {
+      setPosts(data);
+    }
+  };
+
   useEffect(() => {
-    const fetchPosts = async () => {
-      const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .order('timestamp', { ascending: false });
-
-      console.log('SUPABASE DATA:', data);
-      console.log('SUPABASE ERROR:', error);
-
-      if (error) {
-        console.error('Error fetching:', error.message);
-      } else if (data) {
-        // This log confirms the data is actually moving into your React state
-        console.log('SETTING POSTS STATE WITH:', data); 
-        setPosts(data);
-      }
-    };
     fetchPosts();
   }, []);
 
-// ... rest of the file ...
+  // 3. New handleLike function
+  const handleLike = async (postId: string, currentLikes: number) => {
+    const { error } = await supabase
+      .from('posts')
+      .update({ likes_count: (currentLikes || 0) + 1 })
+      .eq('id', postId);
 
-  // 3. Updated addPost function for Real Image Uploads
-  const addPost = async (newPost: Omit<Post, 'id' | 'timestamp'>, file?: File) => {
+    if (error) {
+      console.error('Error updating likes:', error.message);
+    } else {
+      // Refresh local state so the number updates instantly on screen
+      setPosts((prev) => 
+        prev.map((post) => 
+          post.id === postId ? { ...post, likes_count: (post.likes_count || 0) + 1 } : post
+        )
+      );
+    }
+  };
+
+  // 4. addPost function (kept your existing logic)
+  const addPost = async (newPost: Omit<Post, 'id' | 'timestamp' | 'likes_count'>, file?: File) => {
     let finalImageUrl = newPost.imageUrl;
 
-    // A. If a physical file is provided, upload it to Supabase Storage
     if (file) {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('post-images') // Make sure this bucket exists and is PUBLIC
+        .from('post-images')
         .upload(filePath, file);
 
-      if (uploadError) {
-        console.error('Upload Error:', uploadError.message);
-        // We continue with the post even if upload fails, or you can return
-      } else {
-        // B. Get the Public URL so it works on all devices
+      if (!uploadError) {
         const { data } = supabase.storage.from('post-images').getPublicUrl(filePath);
         finalImageUrl = data.publicUrl;
       }
     }
 
-    // C. Final Database Insert with the actual cloud URL
     const { data, error } = await supabase
       .from('posts')
       .insert([{ 
@@ -80,6 +86,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         type: newPost.type,
         tag: newPost.tag,
         imageUrl: finalImageUrl, 
+        likes_count: 0, // Initialize new posts with 0 likes
         timestamp: Date.now() 
       }])
       .select();
@@ -95,7 +102,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AppContext.Provider value={{ posts, addPost }}>
+    <AppContext.Provider value={{ posts, addPost, handleLike }}>
       {children}
     </AppContext.Provider>
   );

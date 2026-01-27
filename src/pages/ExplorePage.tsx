@@ -1,60 +1,39 @@
-import GlassCard from '../components/ui/GlassCard';
-import { useApp } from '../context/AppContext'; // 1. Import the data hook
-import { MapPin, Clock } from 'lucide-react';
+//import React from 'react';
+import { useApp } from '../context/AppContext';
+// This is the specific line to fix:
+import GlassCard from '../components/ui/GlassCard'; 
 
 export default function ExplorePage() {
-  const { posts } = useApp(); // 2. Get the live posts from Supabase
+  const { posts, handleLike } = useApp();
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <header>
-        <h2 className="text-4xl font-black font-heading uppercase tracking-tighter leading-none text-white">
-          Active Feed
-        </h2>
-        <p className="text-white/40 font-mono mt-2">Real-time updates from the hub.</p>
-      </header>
-
-      <div className="grid grid-cols-1 gap-6">
-        {posts.length === 0 ? (
-          <p className="text-white/20 font-mono text-center py-10">No active updates found.</p>
-        ) : (
-          posts.map((post) => (
-            <GlassCard key={post.id} className="p-0 border-white/5 overflow-hidden">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 bg-[#D4FF00]/10 rounded text-[#D4FF00]">
-                      <MapPin size={18} />
-                    </div>
-                    <span className="text-[#D4FF00] font-bold text-xs uppercase tracking-widest">
-                      {post.tag || 'Update'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 text-white/30 text-xs">
-                    <Clock size={14} />
-                    <span>{new Date(post.timestamp).toLocaleTimeString()}</span>
-                  </div>
-                </div>
-
-                <p className="text-white text-lg leading-relaxed mb-4">
-                  {post.content}
-                </p>
-
-                {/* 3. Display the Image if it exists */}
-                {post.imageUrl && (
-                  <div className="mt-4 rounded-lg border border-white/10 overflow-hidden">
-                    <img 
-                      src={post.imageUrl} 
-                      alt="Post visual" 
-                      className="w-full h-auto max-h-[500px] object-cover"
-                      onError={(e) => (e.currentTarget.style.display = 'none')}
-                    />
-                  </div>
-                )}
-              </div>
-            </GlassCard>
-          ))
-        )}
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold text-white mb-8 italic tracking-tighter">
+        HACK_HUB // SYSTEM_FEED
+      </h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {posts.map((post) => (
+          <div key={post.id} className="flex flex-col gap-2">
+            <GlassCard {...post} />
+            
+            <div className="flex items-center justify-between px-2">
+              <button 
+                onClick={() => handleLike(post.id, post.likes_count)}
+                className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-pink-500/20 transition-all"
+              >
+                <span>❤️</span>
+                <span className="text-white text-sm font-mono">
+                  {post.likes_count || 0}
+                </span>
+              </button>
+              
+              <span className="text-[10px] text-white/30 font-mono">
+                {new Date(post.timestamp).toLocaleTimeString()}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
