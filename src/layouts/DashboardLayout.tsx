@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Newspaper, CalendarDays, Compass } from 'lucide-react';
+import { Newspaper, CalendarDays, Compass, MessageSquare } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -9,10 +9,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Decorative Background Strip (WhatsApp Style) */}
       <div className="absolute top-0 left-0 right-0 h-32 bg-primary z-0"></div>
 
-      <main className="relative z-10 container mx-auto p-4 md:p-8 h-screen flex flex-col">
+      <main className="relative z-10 container mx-auto p-0 md:p-4 h-[100dvh] flex flex-col">
         {/* Header */}
-        <div className="bg-[#00A884] text-white p-4 flex items-center shadow-sm z-20 sticky top-0 md:rounded-t-xl">
-          <h1 className="text-xl font-bold tracking-tight text-white flex-1 ml-2">SOCIAL WALL</h1>
+        <div className="bg-[#00A884] text-white p-4 flex items-center shadow-sm z-20 sticky top-0 md:rounded-t-xl shrink-0">
+          <MessageSquare className="w-6 h-6 mr-3 text-[#EFE7DD] fill-[#EFE7DD]/20" />
+          <h1 className="text-xl font-bold tracking-tight text-white flex-1">SOCIAL WALL</h1>
         </div>
 
         {/* Content Area */}

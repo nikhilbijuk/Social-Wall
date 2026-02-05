@@ -127,7 +127,7 @@ export default function ExplorePage() {
       </div>
 
       {/* Input Area */}
-      <div className="bg-[#F0F2F5] p-3 px-4 flex items-end gap-3 z-20 relative">
+      <div className="bg-[#F0F2F5] p-2 md:p-3 px-3 md:px-4 flex items-end gap-2 md:gap-3 z-20 relative shrink-0">
         {/* Hidden Inputs */}
         <input
           type="file"
