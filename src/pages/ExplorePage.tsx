@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import GlassCard from '../components/ui/GlassCard';
 import { Send, Image as ImageIcon, Video, X } from 'lucide-react';
@@ -16,11 +16,13 @@ export default function ExplorePage() {
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Removed auto-scroll to bottom to keep newest posts visible at the top
+  /*
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [posts]);
+  */
 
   // Handle File Selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
@@ -123,7 +125,7 @@ export default function ExplorePage() {
             </div>
           </div>
         ))}
-        <div ref={bottomRef} />
+        <div className="h-4 w-full shrink-0" /> {/* Bottom spacer for better scroll feeling */}
       </div>
 
       {/* Input Area */}
