@@ -5,37 +5,20 @@ import { cn } from '../lib/utils';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background text-white flex overflow-hidden">
-      <aside className="hidden md:flex w-64 flex-col border-r border-white/5 bg-surface z-20">
-        <div className="p-6 border-b border-white/5">
-          <h1 className="text-xl font-black font-heading tracking-tighter">HACK_HUB</h1>
-        </div>
-        <nav className="flex-1 p-6 space-y-1">
-          <NavItem to="/dashboard/posts" icon={<Newspaper size={18} />} label="Posts" />
-          <NavItem to="/dashboard/events" icon={<CalendarDays size={18} />} label="Events" />
-          <NavItem to="/dashboard/explore" icon={<Compass size={18} />} label="Explore" />
-        </nav>
-      </aside>
+    <div className="min-h-screen bg-[#E5DDD5] relative">
+      {/* Decorative Background Strip (WhatsApp Style) */}
+      <div className="absolute top-0 left-0 right-0 h-32 bg-primary z-0"></div>
 
-      <main className="flex-1 flex flex-col relative z-0 overflow-hidden h-screen bg-background">
-        <div className="flex-1 overflow-y-auto p-6 md:p-12 pb-24 md:pb-12 relative z-10">
+      <main className="relative z-10 container mx-auto p-4 md:p-8 h-screen flex flex-col">
+        {/* Header */}
+        <div className="bg-[#00A884] text-white p-4 flex items-center shadow-sm z-20 sticky top-0 md:rounded-t-xl">
+          <h1 className="text-xl font-bold tracking-tight text-white flex-1 ml-2">SOCIAL WALL</h1>
+        </div>
+
+        {/* Content Area */}
+        <div className="bg-white/50 backdrop-blur-md flex-1 overflow-hidden rounded-b-xl shadow-lg border border-white/20 relative">
           {children}
         </div>
-
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-white/10 flex justify-around items-center h-16 px-2 z-50">
-          <NavLink to="/dashboard/events" className={({ isActive }) => cn("flex flex-col items-center", isActive ? "text-primary" : "text-white/20")}>
-            <CalendarDays size={20} />
-            <span className="label-mono text-[7px] mt-1">Events</span>
-          </NavLink>
-          <NavLink to="/dashboard/posts" className={({ isActive }) => cn("flex flex-col items-center", isActive ? "text-primary" : "text-white/20")}>
-            <Newspaper size={20} />
-            <span className="label-mono text-[7px] mt-1">Posts</span>
-          </NavLink>
-          <NavLink to="/dashboard/explore" className={({ isActive }) => cn("flex flex-col items-center", isActive ? "text-primary" : "text-white/20")}>
-            <Compass size={20} />
-            <span className="label-mono text-[7px] mt-1">Explore</span>
-          </NavLink>
-        </nav>
       </main>
     </div>
   );

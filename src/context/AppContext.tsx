@@ -1,21 +1,22 @@
-import { supabase } from '../lib/supabase'
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { turso } from '../lib/turso';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
-// 1. Updated Post Interface to include likes_count
 export interface Post {
   id: string;
   content: string;
   type: 'update' | 'event' | 'alert';
   tag: string;
-  imageUrl?: string; 
-  likes_count: number; // Added this line
+  imageUrl?: string;
+  videoUrl?: string; // Change 1: Added videoUrl
+  likes_count: number;
   timestamp: number;
 }
 
 interface AppContextType {
   posts: Post[];
-  addPost: (post: Omit<Post, 'id' | 'timestamp' | 'likes_count'>, file?: File) => Promise<void>;
-  handleLike: (postId: string, currentLikes: number) => Promise<void>; // Added this line
+  // Change 2: Updated addPost signature - no File, but separate image/video URLs
+  addPost: (post: Omit<Post, 'id' | 'timestamp' | 'likes_count'>) => Promise<void>;
+  handleLike: (postId: string, currentLikes: number) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -23,17 +24,44 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>([]);
 
-  // 2. Fetch posts from Supabase on mount
-  const fetchPosts = async () => {
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .order('timestamp', { ascending: false });
+  const ensureTableExists = async () => {
+    try {
+      await turso.execute(`
+        CREATE TABLE IF NOT EXISTS posts (
+          id TEXT PRIMARY KEY,
+          content TEXT,
+          type TEXT,
+          tag TEXT,
+          imageUrl TEXT,
+          videoUrl TEXT,
+          likes_count INTEGER DEFAULT 0,
+          timestamp INTEGER
+        );
+      `);
+      console.log("Database schema verified.");
+    } catch (error) {
+      console.error("Error verifying schema:", error);
+    }
+  };
 
-    if (error) {
-      console.error('Error fetching:', error.message);
-    } else if (data) {
-      setPosts(data);
+  const fetchPosts = async () => {
+    await ensureTableExists(); // Ensure table exists before fetching
+    try {
+      const result = await turso.execute('SELECT * FROM posts ORDER BY timestamp DESC');
+      // Map rows to Post objects
+      const fetchedPosts: Post[] = result.rows.map((row: any) => ({
+        id: row.id as string,
+        content: row.content as string,
+        type: row.type as 'update' | 'event' | 'alert',
+        tag: row.tag as string,
+        imageUrl: row.imageUrl as string,
+        videoUrl: row.videoUrl as string,
+        likes_count: row.likes_count as number,
+        timestamp: row.timestamp as number,
+      }));
+      setPosts(fetchedPosts);
+    } catch (error) {
+      console.error('Error fetching posts from Turso:', error);
     }
   };
 
@@ -41,63 +69,66 @@ export function AppProvider({ children }: { children: ReactNode }) {
     fetchPosts();
   }, []);
 
-  // 3. New handleLike function
   const handleLike = async (postId: string, currentLikes: number) => {
-    const { error } = await supabase
-      .from('posts')
-      .update({ likes_count: (currentLikes || 0) + 1 })
-      .eq('id', postId);
+    // Optimistic Update
+    const newLikes = (currentLikes || 0) + 1;
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId ? { ...post, likes_count: newLikes } : post
+      )
+    );
 
-    if (error) {
-      console.error('Error updating likes:', error.message);
-    } else {
-      // Refresh local state so the number updates instantly on screen
-      setPosts((prev) => 
-        prev.map((post) => 
-          post.id === postId ? { ...post, likes_count: (post.likes_count || 0) + 1 } : post
+    try {
+      await turso.execute({
+        sql: 'UPDATE posts SET likes_count = ? WHERE id = ?',
+        args: [newLikes, postId],
+      });
+    } catch (error) {
+      console.error('Error updating likes:', error);
+      // Revert if failed
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === postId ? { ...post, likes_count: currentLikes } : post
         )
       );
     }
   };
 
-  // 4. addPost function (kept your existing logic)
-  const addPost = async (newPost: Omit<Post, 'id' | 'timestamp' | 'likes_count'>, file?: File) => {
-    let finalImageUrl = newPost.imageUrl;
+  const addPost = async (newPost: Omit<Post, 'id' | 'timestamp' | 'likes_count'>) => {
+    const id = crypto.randomUUID();
+    const timestamp = Date.now();
+    const likes_count = 0;
 
-    if (file) {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+    const postToSave: Post = {
+      ...newPost,
+      id,
+      timestamp,
+      likes_count
+    };
 
-      const { error: uploadError } = await supabase.storage
-        .from('post-images')
-        .upload(filePath, file);
+    // Optimistic UI update
+    setPosts((prev) => [postToSave, ...prev]);
 
-      if (!uploadError) {
-        const { data } = supabase.storage.from('post-images').getPublicUrl(filePath);
-        finalImageUrl = data.publicUrl;
-      }
-    }
-
-    const { data, error } = await supabase
-      .from('posts')
-      .insert([{ 
-        content: newPost.content,
-        type: newPost.type,
-        tag: newPost.tag,
-        imageUrl: finalImageUrl, 
-        likes_count: 0, // Initialize new posts with 0 likes
-        timestamp: Date.now() 
-      }])
-      .select();
-
-    if (error) {
-      console.error('Database Error:', error.message);
-      return;
-    }
-
-    if (data) {
-      setPosts((prev) => [data[0], ...prev]);
+    try {
+      await turso.execute({
+        sql: 'INSERT INTO posts (id, content, type, tag, imageUrl, videoUrl, likes_count, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        args: [
+          postToSave.id,
+          postToSave.content,
+          postToSave.type,
+          postToSave.tag,
+          postToSave.imageUrl || null,
+          postToSave.videoUrl || null,
+          postToSave.likes_count,
+          postToSave.timestamp
+        ],
+      });
+    } catch (error) {
+      console.error('Database Error:', error);
+      // Remove optimistic post on failure
+      setPosts((prev) => prev.filter(p => p.id !== id));
+      alert(`Upload Failed: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
+      throw error; // Re-throw so the UI knows it failed
     }
   };
 

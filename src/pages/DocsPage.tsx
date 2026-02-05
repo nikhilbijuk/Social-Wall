@@ -27,7 +27,7 @@ export default function DocsPage() {
                             <Shield size={16} />
                             <span className="font-bold tracking-widest text-xs">SYSTEM_MANUAL</span>
                         </div>
-                        <h1 className="text-xl font-black font-heading text-white">HACK_HUB</h1>
+                        <h1 className="text-xl font-black font-heading text-white">SOCIAL WALL</h1>
                     </div>
 
                     <nav className="p-4 space-y-1">
@@ -57,7 +57,7 @@ export default function DocsPage() {
                                 Operational <br /> Protocols
                             </h1>
                             <p className="text-white/40 text-lg leading-relaxed border-l-2 border-white/10 pl-6">
-                                This manual outlines the standard operating procedures for the <span className="text-white">Hack-Hub Coordination System</span>.
+                                This manual outlines the standard operating procedures for the <span className="text-white">Social Wall Coordination System</span>.
                                 Unauthorized access to these protocols is strictly prohibited.
                             </p>
                         </section>
@@ -112,7 +112,7 @@ export default function DocsPage() {
 
                         <ProtocolSection id="sec" number="04" title="Security & Privacy">
                             <p className="mb-4">
-                                The Hack-Hub operates on a <span className="text-secondary">Zero-Trust Architecture</span>.
+                                The Social Wall operates on a <span className="text-secondary">Zero-Trust Architecture</span>.
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                 <div className="border border-white/10 p-4 bg-white/5">

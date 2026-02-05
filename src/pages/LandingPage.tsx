@@ -44,7 +44,7 @@ export default function LandingPage() {
                     >
                         <div className="flex items-center gap-4 mb-4">
                             <span className="text-6xl font-black font-heading tracking-tighter text-white">
-                                HACK_HUB
+                                SOCIAL WALL
                             </span>
                         </div>
                         <div className="w-64 h-1 bg-white/10 rounded-full overflow-hidden">
@@ -146,7 +146,7 @@ export default function LandingPage() {
                                         onMouseLeave={() => setIsHovered(false)}
                                     >
                                         <span className="relative z-10 flex items-center justify-between w-full px-4">
-                                            Initialize_Hub
+                                            Initialize_Wall
                                             <motion.span
                                                 animate={{ x: isHovered ? 4 : 0 }}
                                                 transition={{ type: "spring", stiffness: 300 }}

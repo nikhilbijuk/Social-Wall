@@ -1,8 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import DashboardLayout from './layouts/DashboardLayout';
-import SharePage from './pages/SharePage';
-import EventsPage from './pages/EventsPage';
 import ExplorePage from './pages/ExplorePage';
 
 export default function App() {
@@ -10,19 +8,22 @@ export default function App() {
     <AppProvider>
       <Router>
         <Routes>
-          {/* Change 1: Redirect root path to explore instead of posts */}
+          {/* Redirect root path to explore */}
           <Route path="/" element={<Navigate to="/dashboard/explore" replace />} />
-          
+
           <Route
             path="/dashboard/*"
             element={
               <DashboardLayout>
                 <Routes>
-                  <Route path="posts" element={<SharePage />} />
-                  <Route path="events" element={<EventsPage />} />
+                  {/* Redirect old routes to explore */}
+                  <Route path="posts" element={<Navigate to="../explore" replace />} />
+                  <Route path="events" element={<Navigate to="../explore" replace />} />
+
+                  {/* Main Route */}
                   <Route path="explore" element={<ExplorePage />} />
-                  
-                  {/* Change 2: Redirect default dashboard path to explore */}
+
+                  {/* Default Index */}
                   <Route index element={<Navigate to="explore" replace />} />
                 </Routes>
               </DashboardLayout>
