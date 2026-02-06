@@ -46,7 +46,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const fetchPosts = async () => {
     try {
-      const result = await turso.execute('SELECT * FROM posts ORDER BY timestamp DESC');
+      const result = await turso.execute('SELECT * FROM posts ORDER BY timestamp DESC LIMIT 40');
       // Map rows to Post objects
       const fetchedPosts: Post[] = result.rows.map((row: any) => ({
         id: row.id as string,

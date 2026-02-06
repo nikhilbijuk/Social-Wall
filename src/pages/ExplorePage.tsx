@@ -29,11 +29,11 @@ export default function ExplorePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Size Validation (5MB as requested)
-    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    // Size Validation (1MB as requested)
+    const MAX_SIZE = 1 * 1024 * 1024; // 1MB
 
     if (file.size > MAX_SIZE) {
-      alert("File too large! Please select a file under 5MB.");
+      alert("File too large! Please select a file under 1MB.");
       return;
     }
 
@@ -56,39 +56,48 @@ export default function ExplorePage() {
   // Image Compression
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve) => {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
+      try {
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
 
-        // Max dimensions for compression
-        const MAX_WIDTH = 1200;
-        const MAX_HEIGHT = 1200;
+          // Max dimensions for compression
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
 
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
           }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
 
-        canvas.toBlob((blob) => {
-          if (blob) resolve(blob);
-          else resolve(file);
-        }, 'image/jpeg', 0.7); // 70% quality JPEG
-      };
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else resolve(file);
+          }, 'image/jpeg', 0.7); // 70% quality JPEG
+        };
+        img.onerror = () => {
+          console.error("Image loading failed for compression");
+          resolve(file);
+        };
+      } catch (err) {
+        console.error("Compression error:", err);
+        resolve(file);
+      }
     });
   };
 
