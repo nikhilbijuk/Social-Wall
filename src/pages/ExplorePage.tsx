@@ -196,15 +196,17 @@ export default function ExplorePage() {
         <div className="flex gap-1 pb-3 text-gray-500">
           <button
             onClick={() => imageInputRef.current?.click()}
-            className="p-2 hover:bg-gray-200 rounded-full transition-colors"
-            title="Attach Image"
+            disabled={!!selectedFile}
+            className="p-2 hover:bg-gray-200 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            title={selectedFile ? "Only one file allowed" : "Attach Image"}
           >
             <ImageIcon size={24} />
           </button>
           <button
             onClick={() => videoInputRef.current?.click()}
-            className="p-2 hover:bg-gray-200 rounded-full transition-colors"
-            title="Attach Video"
+            disabled={!!selectedFile}
+            className="p-2 hover:bg-gray-200 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            title={selectedFile ? "Only one file allowed" : "Attach Video"}
           >
             <Video size={24} />
           </button>
