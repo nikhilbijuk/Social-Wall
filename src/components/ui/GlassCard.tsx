@@ -57,6 +57,11 @@ const GlassCard: React.FC<GlassCardProps> = ({
                             alt="Media"
                             loading="lazy"
                             className="w-full h-auto object-cover max-h-[300px]"
+                            onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = 'https://placehold.co/600x400?text=Image+Unavailable';
+                                target.onerror = null; // Prevent infinite loop
+                            }}
                         />
                     </div>
                 )}

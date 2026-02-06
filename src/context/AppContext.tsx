@@ -44,11 +44,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (isInitial = false) => {
     try {
-      const result = await turso.execute('SELECT * FROM posts ORDER BY timestamp DESC LIMIT 40');
-      // Map rows to Post objects
-      const fetchedPosts: Post[] = result.rows.map((row: any) => ({
+      let query = 'SELECT * FROM posts ORDER BY timestamp DESC LIMIT 20';
+      let args: any[] = [];
+
+      if (!isInitial && posts.length > 0) {
+        const latestTimestamp = posts[0].timestamp;
+        query = 'SELECT * FROM posts WHERE timestamp > ? ORDER BY timestamp DESC';
+        args = [latestTimestamp];
+      }
+
+      const result = await turso.execute({ sql: query, args });
+
+      if (result.rows.length === 0) return;
+
+      const newPosts: Post[] = result.rows.map((row: any) => ({
         id: row.id as string,
         content: row.content as string,
         type: row.type as 'update' | 'event' | 'alert',
@@ -58,24 +69,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
         likes_count: row.likes_count as number,
         timestamp: row.timestamp as number,
       }));
-      setPosts(fetchedPosts);
+
+      if (isInitial) {
+        setPosts(newPosts);
+      } else {
+        setPosts((prev) => {
+          // Filter out any duplicates (in case of race conditions with optimistic updates)
+          const existingIds = new Set(prev.map(p => p.id));
+          const filteredNew = newPosts.filter(p => !existingIds.has(p.id));
+          return [...filteredNew, ...prev];
+        });
+      }
     } catch (error) {
       console.error('Error fetching posts from Turso:', error);
     }
   };
 
   useEffect(() => {
-    // Initial fetch and schema check
     const init = async () => {
       await ensureTableExists();
-      await fetchPosts();
+      await fetchPosts(true);
     };
     init();
 
-    // Auto-refresh polling every 10 seconds
-    const interval = setInterval(fetchPosts, 10000);
+    const interval = setInterval(() => fetchPosts(false), 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [posts]); // Re-run effect when posts change to ensure fetchPosts(false) has access to latest posts for timestamp check
 
   const handleLike = async (postId: string, currentLikes: number) => {
     // Optimistic Update

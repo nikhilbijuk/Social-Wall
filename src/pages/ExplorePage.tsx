@@ -29,11 +29,11 @@ export default function ExplorePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Size Validation (1MB as requested)
-    const MAX_SIZE = 1 * 1024 * 1024; // 1MB
+    // Size Validation (500KB for aggressive optimization)
+    const MAX_SIZE = 500 * 1024; // 500KB
 
     if (file.size > MAX_SIZE) {
-      alert("File too large! Please select a file under 1MB.");
+      alert("File too large! Please select a file under 500KB for better performance.");
       return;
     }
 
@@ -65,8 +65,8 @@ export default function ExplorePage() {
           let height = img.height;
 
           // Max dimensions for compression
-          const MAX_WIDTH = 1200;
-          const MAX_HEIGHT = 1200;
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
 
           if (width > height) {
             if (width > MAX_WIDTH) {
@@ -88,7 +88,7 @@ export default function ExplorePage() {
           canvas.toBlob((blob) => {
             if (blob) resolve(blob);
             else resolve(file);
-          }, 'image/jpeg', 0.7); // 70% quality JPEG
+          }, 'image/jpeg', 0.5); // 50% quality JPEG
         };
         img.onerror = () => {
           console.error("Image loading failed for compression");
