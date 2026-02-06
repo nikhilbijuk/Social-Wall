@@ -111,6 +111,39 @@ export default function ExplorePage() {
     });
   };
 
+  // Video Thumbnail Generation
+  const captureVideoThumbnail = (file: File): Promise<Blob> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.src = URL.createObjectURL(file);
+      video.crossOrigin = 'anonymous';
+      video.preload = 'metadata';
+
+      video.onloadedmetadata = () => {
+        video.currentTime = 0.5; // Capture at 0.5 seconds
+      };
+
+      video.onseeked = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 400; // Small thumbnail
+        canvas.height = (video.videoHeight / video.videoWidth) * canvas.width;
+
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else resolve(file); // Fallback
+        }, 'image/jpeg', 0.6);
+      };
+
+      video.onerror = () => {
+        console.error("Video thumbnail generation failed");
+        resolve(file);
+      };
+    });
+  };
+
   const handlePost = async () => {
     if (!text.trim() && !selectedFile) return;
     setIsUploading(true);
@@ -125,11 +158,16 @@ export default function ExplorePage() {
         // Compress if it's an image
         if (fileType === 'image') {
           fileToUpload = await compressImage(selectedFile);
-        }
+          const base64String = await convertToBase64(fileToUpload);
+          finalImageUrl = base64String;
+        } else if (fileType === 'video') {
+          // Generate thumbnail for video
+          const thumbnailBlob = await captureVideoThumbnail(selectedFile);
+          finalImageUrl = await convertToBase64(thumbnailBlob);
 
-        const base64String = await convertToBase64(fileToUpload);
-        if (fileType === 'image') finalImageUrl = base64String;
-        if (fileType === 'video') finalVideoUrl = base64String;
+          const base64String = await convertToBase64(selectedFile);
+          finalVideoUrl = base64String;
+        }
       }
 
       await addPost({

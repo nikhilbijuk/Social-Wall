@@ -2,6 +2,8 @@ import * as React from 'react';
 import { cn } from '../../lib/utils';
 import { motion, type HTMLMotionProps } from 'framer-motion';
 
+import { Play } from 'lucide-react';
+
 interface GlassCardProps extends HTMLMotionProps<"div"> {
     className?: string; // Explicitly adding to fix TS error
     style?: React.CSSProperties;
@@ -27,6 +29,8 @@ const GlassCard: React.FC<GlassCardProps> = ({
     type,
     ...props
 }) => {
+    const [isPlaying, setIsPlaying] = React.useState(false);
+
     return (
         <motion.div
             className={cn(
@@ -50,8 +54,11 @@ const GlassCard: React.FC<GlassCardProps> = ({
 
             {/* Content Rendering */}
             <div className="flex flex-col gap-2">
-                {imageUrl && (
-                    <div className="w-full rounded-md overflow-hidden bg-gray-100 min-h-[100px] flex items-center justify-center">
+                {imageUrl && !isPlaying && (
+                    <div
+                        className="w-full rounded-md overflow-hidden bg-gray-100 min-h-[100px] flex items-center justify-center relative cursor-pointer group"
+                        onClick={() => videoUrl && setIsPlaying(true)}
+                    >
                         <img
                             src={imageUrl}
                             alt="Media"
@@ -63,15 +70,23 @@ const GlassCard: React.FC<GlassCardProps> = ({
                                 target.onerror = null; // Prevent infinite loop
                             }}
                         />
+                        {videoUrl && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+                                <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                    <Play className="text-black fill-black ml-1" size={24} />
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
-                {videoUrl && (
+                {videoUrl && isPlaying && (
                     <div className="w-full rounded-md overflow-hidden bg-gray-100 min-h-[100px] flex items-center justify-center">
                         <video
                             src={videoUrl}
                             controls
-                            preload="metadata"
+                            autoPlay
+                            preload="auto"
                             className="w-full h-auto max-h-[300px]"
                         />
                     </div>
