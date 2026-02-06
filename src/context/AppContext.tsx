@@ -1,5 +1,5 @@
 import { turso } from '../lib/turso';
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react';
 
 export interface Post {
   id: string;
@@ -14,7 +14,8 @@ export interface Post {
 
 interface AppContextType {
   posts: Post[];
-  // Change 2: Updated addPost signature - no File, but separate image/video URLs
+  isLoading: boolean;
+  loadingProgress: number;
   addPost: (post: Omit<Post, 'id' | 'timestamp' | 'likes_count'>) => Promise<void>;
   handleLike: (postId: string, currentLikes: number) => Promise<void>;
 }
@@ -23,6 +24,9 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const latestTimestampRef = useRef<number>(0);
 
   const ensureTableExists = async () => {
     try {
@@ -49,10 +53,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       let query = 'SELECT * FROM posts ORDER BY timestamp DESC LIMIT 20';
       let args: any[] = [];
 
-      if (!isInitial && posts.length > 0) {
-        const latestTimestamp = posts[0].timestamp;
+      if (!isInitial && latestTimestampRef.current > 0) {
         query = 'SELECT * FROM posts WHERE timestamp > ? ORDER BY timestamp DESC';
-        args = [latestTimestamp];
+        args = [latestTimestampRef.current];
       }
 
       const result = await turso.execute({ sql: query, args });
@@ -64,20 +67,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
         content: row.content as string,
         type: row.type as 'update' | 'event' | 'alert',
         tag: row.tag as string,
-        imageUrl: row.imageUrl as string,
-        videoUrl: row.videoUrl as string,
+        imageUrl: (row.imageUrl as string) || undefined,
+        videoUrl: (row.videoUrl as string) || undefined,
         likes_count: row.likes_count as number,
         timestamp: row.timestamp as number,
       }));
 
       if (isInitial) {
         setPosts(newPosts);
+        if (newPosts.length > 0) {
+          latestTimestampRef.current = newPosts[0].timestamp;
+        }
       } else {
         setPosts((prev) => {
-          // Filter out any duplicates (in case of race conditions with optimistic updates)
           const existingIds = new Set(prev.map(p => p.id));
           const filteredNew = newPosts.filter(p => !existingIds.has(p.id));
-          return [...filteredNew, ...prev];
+          if (filteredNew.length === 0) return prev;
+
+          const updatedPosts = [...filteredNew, ...prev];
+          latestTimestampRef.current = updatedPosts[0].timestamp;
+          return updatedPosts;
         });
       }
     } catch (error) {
@@ -87,14 +96,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const init = async () => {
+      setIsLoading(true);
+      setLoadingProgress(10);
       await ensureTableExists();
+      setLoadingProgress(40);
       await fetchPosts(true);
+      setLoadingProgress(100);
+
+      // Small delay to show 100%
+      setTimeout(() => setIsLoading(false), 500);
     };
     init();
 
     const interval = setInterval(() => fetchPosts(false), 10000);
     return () => clearInterval(interval);
-  }, [posts]); // Re-run effect when posts change to ensure fetchPosts(false) has access to latest posts for timestamp check
+  }, []); // Run once on mount
+
 
   const handleLike = async (postId: string, currentLikes: number) => {
     // Optimistic Update
@@ -134,7 +151,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     // Optimistic UI update
-    setPosts((prev) => [postToSave, ...prev]);
+    setPosts((prev) => {
+      const updated = [postToSave, ...prev];
+      latestTimestampRef.current = Math.max(latestTimestampRef.current, postToSave.timestamp);
+      return updated;
+    });
 
     try {
       await turso.execute({
@@ -160,7 +181,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AppContext.Provider value={{ posts, addPost, handleLike }}>
+    <AppContext.Provider value={{ posts, isLoading, loadingProgress, addPost, handleLike }}>
       {children}
     </AppContext.Provider>
   );

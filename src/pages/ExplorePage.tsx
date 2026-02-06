@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import GlassCard from '../components/ui/GlassCard';
+import LoadingOverlay from '../components/ui/LoadingOverlay';
 import { Send, Image as ImageIcon, Video, X } from 'lucide-react';
 
 export default function ExplorePage() {
-  const { posts, addPost, handleLike } = useApp();
+  const { posts, addPost, handleLike, isLoading, loadingProgress } = useApp();
   const [text, setText] = useState('');
 
   // File States
@@ -46,6 +47,9 @@ export default function ExplorePage() {
   };
 
   const clearAttachment = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setSelectedFile(null);
     setPreviewUrl(null);
     setFileType(null);
@@ -57,6 +61,7 @@ export default function ExplorePage() {
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve) => {
       try {
+        console.log(`Starting compression for: ${file.name} (${(file.size / 1024).toFixed(2)}KB)`);
         const img = new Image();
         img.src = URL.createObjectURL(file);
         img.onload = () => {
@@ -86,13 +91,20 @@ export default function ExplorePage() {
           ctx?.drawImage(img, 0, 0, width, height);
 
           canvas.toBlob((blob) => {
-            if (blob) resolve(blob);
-            else resolve(file);
+            URL.revokeObjectURL(img.src);
+            if (blob) {
+              console.log(`Compression complete: ${(blob.size / 1024).toFixed(2)}KB`);
+              resolve(blob);
+            } else {
+              console.warn("Blob creation failed, using original file.");
+              resolve(file);
+            }
           }, 'image/jpeg', 0.5); // 50% quality JPEG
         };
         img.onerror = () => {
-          console.error("Image loading failed for compression");
-          resolve(file);
+          URL.revokeObjectURL(img.src);
+          console.error("Image loading failed for compression. Possibly unsupported format.");
+          resolve(file); // Fallback to original
         };
       } catch (err) {
         console.error("Compression error:", err);
@@ -112,10 +124,12 @@ export default function ExplorePage() {
   };
 
   // Video Thumbnail Generation
-  const captureVideoThumbnail = (file: File): Promise<Blob> => {
+  const captureVideoThumbnail = (file: File): Promise<Blob | null> => {
     return new Promise((resolve) => {
+      console.log(`Generating thumbnail for: ${file.name}`);
       const video = document.createElement('video');
-      video.src = URL.createObjectURL(file);
+      const videoUrl = URL.createObjectURL(file);
+      video.src = videoUrl;
       video.crossOrigin = 'anonymous';
       video.preload = 'metadata';
 
@@ -132,14 +146,21 @@ export default function ExplorePage() {
         ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         canvas.toBlob((blob) => {
-          if (blob) resolve(blob);
-          else resolve(file); // Fallback
+          URL.revokeObjectURL(videoUrl);
+          if (blob) {
+            console.log("Thumbnail generated successfully.");
+            resolve(blob);
+          } else {
+            console.warn("Thumbnail blob creation failed.");
+            resolve(null);
+          }
         }, 'image/jpeg', 0.6);
       };
 
       video.onerror = () => {
-        console.error("Video thumbnail generation failed");
-        resolve(file);
+        URL.revokeObjectURL(videoUrl);
+        console.error("Video thumbnail generation failed.");
+        resolve(null);
       };
     });
   };
@@ -163,12 +184,16 @@ export default function ExplorePage() {
         } else if (fileType === 'video') {
           // Generate thumbnail for video
           const thumbnailBlob = await captureVideoThumbnail(selectedFile);
-          finalImageUrl = await convertToBase64(thumbnailBlob);
+          if (thumbnailBlob) {
+            finalImageUrl = await convertToBase64(thumbnailBlob);
+          }
 
           const base64String = await convertToBase64(selectedFile);
           finalVideoUrl = base64String;
         }
       }
+
+      console.log("Submitting post to AppContext...");
 
       await addPost({
         content: text,
@@ -192,6 +217,7 @@ export default function ExplorePage() {
 
   return (
     <div className="flex flex-col h-full bg-[#EFE7DD] relative">
+      <LoadingOverlay isLoading={isLoading} progress={loadingProgress} />
       {/* Background Pattern Overlay */}
       <div className="absolute inset-0 opacity-[0.06] pointer-events-none"
         style={{ backgroundImage: 'radial-gradient(#4a4a4a 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
