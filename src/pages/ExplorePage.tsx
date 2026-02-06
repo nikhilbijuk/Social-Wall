@@ -29,11 +29,11 @@ export default function ExplorePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Size Validation (15MB for Image & Video as per request)
-    const MAX_SIZE = 15 * 1024 * 1024; // 15MB
+    // Size Validation (5MB as requested)
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
     if (file.size > MAX_SIZE) {
-      alert("File too large! Please select a file under 15MB.");
+      alert("File too large! Please select a file under 5MB.");
       return;
     }
 
@@ -53,8 +53,47 @@ export default function ExplorePage() {
     if (videoInputRef.current) videoInputRef.current.value = '';
   };
 
+  // Image Compression
+  const compressImage = (file: File): Promise<Blob> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Max dimensions for compression
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1200;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else resolve(file);
+        }, 'image/jpeg', 0.7); // 70% quality JPEG
+      };
+    });
+  };
+
   // Convert File to Base64
-  const convertToBase64 = (file: File): Promise<string> => {
+  const convertToBase64 = (file: File | Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -72,7 +111,14 @@ export default function ExplorePage() {
       let finalVideoUrl = undefined;
 
       if (selectedFile) {
-        const base64String = await convertToBase64(selectedFile);
+        let fileToUpload: File | Blob = selectedFile;
+
+        // Compress if it's an image
+        if (fileType === 'image') {
+          fileToUpload = await compressImage(selectedFile);
+        }
+
+        const base64String = await convertToBase64(fileToUpload);
         if (fileType === 'image') finalImageUrl = base64String;
         if (fileType === 'video') finalVideoUrl = base64String;
       }

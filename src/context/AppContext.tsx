@@ -45,7 +45,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const fetchPosts = async () => {
-    await ensureTableExists(); // Ensure table exists before fetching
     try {
       const result = await turso.execute('SELECT * FROM posts ORDER BY timestamp DESC');
       // Map rows to Post objects
@@ -66,7 +65,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    fetchPosts();
+    // Initial fetch and schema check
+    const init = async () => {
+      await ensureTableExists();
+      await fetchPosts();
+    };
+    init();
+
+    // Auto-refresh polling every 10 seconds
+    const interval = setInterval(fetchPosts, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleLike = async (postId: string, currentLikes: number) => {

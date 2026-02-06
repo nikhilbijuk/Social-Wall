@@ -51,20 +51,22 @@ const GlassCard: React.FC<GlassCardProps> = ({
             {/* Content Rendering */}
             <div className="flex flex-col gap-2">
                 {imageUrl && (
-                    <div className="w-full rounded-md overflow-hidden bg-gray-100">
+                    <div className="w-full rounded-md overflow-hidden bg-gray-100 min-h-[100px] flex items-center justify-center">
                         <img
                             src={imageUrl}
                             alt="Media"
+                            loading="lazy"
                             className="w-full h-auto object-cover max-h-[300px]"
                         />
                     </div>
                 )}
 
                 {videoUrl && (
-                    <div className="w-full rounded-md overflow-hidden bg-gray-100">
+                    <div className="w-full rounded-md overflow-hidden bg-gray-100 min-h-[100px] flex items-center justify-center">
                         <video
                             src={videoUrl}
                             controls
+                            preload="metadata"
                             className="w-full h-auto max-h-[300px]"
                         />
                     </div>
