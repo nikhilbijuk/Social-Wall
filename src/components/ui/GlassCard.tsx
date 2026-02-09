@@ -30,6 +30,35 @@ const GlassCard: React.FC<GlassCardProps> = ({
     ...props
 }) => {
     const [isPlaying, setIsPlaying] = React.useState(false);
+    const [videoBlobUrl, setVideoBlobUrl] = React.useState<string | null>(null);
+
+    React.useEffect(() => {
+        let activeUrl: string | null = null;
+
+        if (isPlaying && videoUrl && videoUrl.startsWith('data:')) {
+            try {
+                const parts = videoUrl.split(',');
+                const byteString = atob(parts[1]);
+                const mimeString = parts[0].split(':')[1].split(';')[0];
+                const ab = new ArrayBuffer(byteString.length);
+                const ia = new Uint8Array(ab);
+                for (let i = 0; i < byteString.length; i++) {
+                    ia[i] = byteString.charCodeAt(i);
+                }
+                const blob = new Blob([ab], { type: mimeString });
+                activeUrl = URL.createObjectURL(blob);
+                setVideoBlobUrl(activeUrl);
+            } catch (error) {
+                console.error("Failed to create video blob URL:", error);
+            }
+        }
+
+        return () => {
+            if (activeUrl) {
+                URL.revokeObjectURL(activeUrl);
+            }
+        };
+    }, [isPlaying, videoUrl]);
 
     return (
         <motion.div
@@ -83,7 +112,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
                 {videoUrl && isPlaying && (
                     <div className="w-full rounded-md overflow-hidden bg-gray-100 min-h-[100px] flex items-center justify-center">
                         <video
-                            src={videoUrl}
+                            src={videoBlobUrl || videoUrl}
                             controls
                             autoPlay
                             preload="auto"
