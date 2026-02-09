@@ -110,14 +110,29 @@ const GlassCard: React.FC<GlassCardProps> = ({
                 )}
 
                 {videoUrl && isPlaying && (
-                    <div className="w-full rounded-md overflow-hidden bg-gray-100 min-h-[100px] flex items-center justify-center">
+                    <div className="w-full rounded-md overflow-hidden bg-gray-100 min-h-[100px] flex flex-col items-center justify-center p-2">
                         <video
                             src={videoBlobUrl || videoUrl}
                             controls
                             autoPlay
+                            muted
+                            playsInline
                             preload="auto"
-                            className="w-full h-auto max-h-[300px]"
+                            className="w-full h-auto max-h-[300px] rounded-md"
+                            onError={(e) => {
+                                console.error("Video playback error:", e);
+                                const target = e.target as HTMLVideoElement;
+                                if (target.error) {
+                                    console.error("Video Error Code:", target.error.code);
+                                    console.error("Video Error Message:", target.error.message);
+                                }
+                            }}
                         />
+                        {(!videoBlobUrl && videoUrl.length > 1000000) && (
+                            <p className="text-[10px] text-gray-500 mt-2">
+                                Processing large video... Please wait.
+                            </p>
+                        )}
                     </div>
                 )}
 
