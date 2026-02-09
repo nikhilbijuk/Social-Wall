@@ -18,6 +18,7 @@ interface AppContextType {
   loadingProgress: number;
   addPost: (post: Omit<Post, 'id' | 'timestamp' | 'likes_count'>) => Promise<void>;
   handleLike: (postId: string, currentLikes: number) => Promise<void>;
+  login: (email: string, team: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -31,20 +32,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const ensureTableExists = async () => {
     try {
       await turso.execute(`
-        CREATE TABLE IF NOT EXISTS posts (
-          id TEXT PRIMARY KEY,
-          content TEXT,
-          type TEXT,
-          tag TEXT,
-          imageUrl TEXT,
-          videoUrl TEXT,
-          likes_count INTEGER DEFAULT 0,
-          timestamp INTEGER
         );
       `);
-      console.log("Database schema verified.");
+      await turso.execute(`
+        CREATE INDEX IF NOT EXISTS idx_posts_timestamp ON posts(timestamp DESC);
+      `);
+      console.log("Database schema and indexing verified.");
     } catch (error) {
-      console.error("Error verifying schema:", error);
+      console.error("Error verifying schema or index:", error);
     }
   };
 
@@ -108,7 +103,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     init();
 
-    const interval = setInterval(() => fetchPosts(false), 10000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchPosts(false);
+      }
+    }, 15000); // Increased to 15s for better traffic management
     return () => clearInterval(interval);
   }, []); // Run once on mount
 
@@ -175,13 +174,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.error('Database Error:', error);
       // Remove optimistic post on failure
       setPosts((prev) => prev.filter(p => p.id !== id));
-      alert(`Upload Failed: ${error instanceof Error ? error.message : JSON.stringify(error)}`);
+      alert(`Upload Failed: ${error instanceof Error ? error.message : JSON.stringify(error)} `);
       throw error; // Re-throw so the UI knows it failed
     }
   };
+  const login = async (email: string, team: string) => {
+    // Simple mock login - in a real app, this would verify credentials
+    console.log('Logging in:', { email, team });
+    localStorage.setItem('social-wall-auth', JSON.stringify({ email, team, timestamp: Date.now() }));
+    return Promise.resolve();
+  };
 
   return (
-    <AppContext.Provider value={{ posts, isLoading, loadingProgress, addPost, handleLike }}>
+    <AppContext.Provider value={{ posts, isLoading, loadingProgress, addPost, handleLike, login }}>
       {children}
     </AppContext.Provider>
   );

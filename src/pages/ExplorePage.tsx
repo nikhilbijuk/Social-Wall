@@ -30,11 +30,11 @@ export default function ExplorePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Size Validation (500KB for aggressive optimization)
-    const MAX_SIZE = 500 * 1024; // 500KB
+    // Size Validation (10MB for HD support)
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
     if (file.size > MAX_SIZE) {
-      alert("File too large! Please select a file under 500KB for better performance.");
+      alert("File too large! Please select a file under 10MB for better performance.");
       return;
     }
 
@@ -61,7 +61,7 @@ export default function ExplorePage() {
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve) => {
       try {
-        console.log(`Starting compression for: ${file.name} (${(file.size / 1024).toFixed(2)}KB)`);
+        console.log(`Starting HD compression for: ${file.name} (${(file.size / 1024).toFixed(2)}KB)`);
         const img = new Image();
         img.src = URL.createObjectURL(file);
         img.onload = () => {
@@ -69,9 +69,9 @@ export default function ExplorePage() {
           let width = img.width;
           let height = img.height;
 
-          // Max dimensions for compression
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
+          // Max dimensions for HD compression
+          const MAX_WIDTH = 1920;
+          const MAX_HEIGHT = 1920;
 
           if (width > height) {
             if (width > MAX_WIDTH) {
@@ -93,13 +93,13 @@ export default function ExplorePage() {
           canvas.toBlob((blob) => {
             URL.revokeObjectURL(img.src);
             if (blob) {
-              console.log(`Compression complete: ${(blob.size / 1024).toFixed(2)}KB`);
+              console.log(`HD Compression complete: ${(blob.size / 1024).toFixed(2)}KB`);
               resolve(blob);
             } else {
               console.warn("Blob creation failed, using original file.");
               resolve(file);
             }
-          }, 'image/jpeg', 0.5); // 50% quality JPEG
+          }, 'image/jpeg', 0.8); // 80% quality for crisp HD
         };
         img.onerror = () => {
           URL.revokeObjectURL(img.src);

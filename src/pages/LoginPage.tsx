@@ -23,16 +23,9 @@ export default function LoginPage() {
         setIsLoading(true);
 
         // Simulate biometric scan
-        setTimeout(() => {
-            login({
-                id: `user_${Date.now()}`,
-                name: formData.name,
-                role: 'participant',
-                teamName: formData.team,
-                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.name}`,
-                tags: ['Hacker']
-            });
-            navigate('/dashboard/share');
+        setTimeout(async () => {
+            await login(formData.email, formData.team);
+            navigate('/dashboard/explore');
         }, 1500);
     };
 
@@ -77,7 +70,7 @@ export default function LoginPage() {
                         isFocused={focusedField === 'email'}
                         onFocus={() => setFocusedField('email')}
                         onBlur={() => setFocusedField(null)}
-                        placeholder="alex@hack-hub.io"
+                        placeholder="alex@social-wall.io"
                     />
                     <KineticInput
                         label="Affiliation / Team"
