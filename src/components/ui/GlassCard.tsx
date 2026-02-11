@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { memo } from 'react';
 import { cn } from '../../lib/utils';
 import { motion, type HTMLMotionProps } from 'framer-motion';
 
@@ -31,29 +32,43 @@ const GlassCard: React.FC<GlassCardProps> = ({
 }) => {
     const [isPlaying, setIsPlaying] = React.useState(false);
     const [videoBlobUrl, setVideoBlobUrl] = React.useState<string | null>(null);
+    const [isProcessing, setIsProcessing] = React.useState(false);
 
     React.useEffect(() => {
         let activeUrl: string | null = null;
+        let isAborted = false;
 
-        if (isPlaying && videoUrl && videoUrl.startsWith('data:')) {
-            try {
-                const parts = videoUrl.split(',');
-                const byteString = atob(parts[1]);
-                const mimeString = parts[0].split(':')[1].split(';')[0];
-                const ab = new ArrayBuffer(byteString.length);
-                const ia = new Uint8Array(ab);
-                for (let i = 0; i < byteString.length; i++) {
-                    ia[i] = byteString.charCodeAt(i);
+        const createBlob = async () => {
+            if (!isPlaying || !videoUrl) return;
+
+            if (videoUrl.startsWith('data:')) {
+                setIsProcessing(true);
+                try {
+                    // Fetch is more memory efficient than atob for large strings
+                    // and handles the decoding in the browser's background pool
+                    const response = await fetch(videoUrl);
+                    const blob = await response.blob();
+
+                    if (!isAborted) {
+                        activeUrl = URL.createObjectURL(blob);
+                        setVideoBlobUrl(activeUrl);
+                        setIsProcessing(false);
+                    }
+                } catch (error) {
+                    if (!isAborted) {
+                        console.error("Failed to create video blob URL:", error);
+                        setIsProcessing(false);
+                    }
                 }
-                const blob = new Blob([ab], { type: mimeString });
-                activeUrl = URL.createObjectURL(blob);
-                setVideoBlobUrl(activeUrl);
-            } catch (error) {
-                console.error("Failed to create video blob URL:", error);
+            } else {
+                setIsProcessing(false);
             }
-        }
+        };
+
+        createBlob();
 
         return () => {
+            isAborted = true;
             if (activeUrl) {
                 URL.revokeObjectURL(activeUrl);
             }
@@ -110,28 +125,37 @@ const GlassCard: React.FC<GlassCardProps> = ({
                 )}
 
                 {videoUrl && isPlaying && (
-                    <div className="w-full rounded-md overflow-hidden bg-gray-100 min-h-[100px] flex flex-col items-center justify-center p-2">
-                        <video
-                            src={videoBlobUrl || videoUrl}
-                            controls
-                            autoPlay
-                            muted
-                            playsInline
-                            preload="auto"
-                            className="w-full h-auto max-h-[300px] rounded-md"
-                            onError={(e) => {
-                                console.error("Video playback error:", e);
-                                const target = e.target as HTMLVideoElement;
-                                if (target.error) {
-                                    console.error("Video Error Code:", target.error.code);
-                                    console.error("Video Error Message:", target.error.message);
-                                }
-                            }}
-                        />
-                        {(!videoBlobUrl && videoUrl.length > 1000000) && (
-                            <p className="text-[10px] text-gray-500 mt-2">
-                                Processing large video... Please wait.
-                            </p>
+                    <div className="w-full rounded-md overflow-hidden bg-black/5 min-h-[150px] flex flex-col items-center justify-center p-2 relative">
+                        {isProcessing ? (
+                            <div className="flex flex-col items-center gap-3 py-8">
+                                <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                <p className="text-xs font-medium text-gray-500 animate-pulse">
+                                    Optimizing video for playback...
+                                </p>
+                            </div>
+                        ) : (
+                            <video
+                                src={videoBlobUrl || videoUrl}
+                                controls
+                                autoPlay
+                                muted
+                                playsInline
+                                preload="auto"
+                                className="w-full h-auto max-h-[400px] rounded-md shadow-sm"
+                                onError={(e) => {
+                                    console.error("Video playback error:", e);
+                                    const target = e.target as HTMLVideoElement;
+                                    if (target.error) {
+                                        console.error("Video Error Code:", target.error.code);
+                                        console.error("Video Error Message:", target.error.message);
+                                    }
+                                }}
+                            />
+                        )}
+                        {(videoUrl.startsWith('data:') && videoUrl.length > 2000000 && !isProcessing) && (
+                            <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-black/40 backdrop-blur-sm rounded text-[9px] text-white/90 font-bold tracking-wider uppercase">
+                                HD
+                            </div>
                         )}
                     </div>
                 )}
@@ -148,4 +172,4 @@ const GlassCard: React.FC<GlassCardProps> = ({
     );
 };
 
-export default GlassCard;
+export default memo(GlassCard);

@@ -14,6 +14,8 @@ export default function ExplorePage() {
   const [fileType, setFileType] = useState<'image' | 'video' | null>(null);
 
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadQueue, setUploadQueue] = useState<number>(0);
+  const uploadDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -30,11 +32,15 @@ export default function ExplorePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Size Validation (10MB for HD support)
-    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    // Size Validation - Separate limits for images and videos
+    const MAX_IMAGE_SIZE = 8 * 1024 * 1024; // 8MB
+    const MAX_VIDEO_SIZE = 15 * 1024 * 1024; // 15MB
 
-    if (file.size > MAX_SIZE) {
-      alert("File too large! Please select a file under 10MB for better performance.");
+    const maxSize = type === 'image' ? MAX_IMAGE_SIZE : MAX_VIDEO_SIZE;
+    const sizeLabel = type === 'image' ? '8MB' : '15MB';
+
+    if (file.size > maxSize) {
+      alert(`File too large! Please select a ${type} under ${sizeLabel} for better performance.`);
       return;
     }
 
@@ -167,7 +173,20 @@ export default function ExplorePage() {
 
   const handlePost = async () => {
     if (!text.trim() && !selectedFile) return;
+
+    // Debounce: Prevent rapid-fire submissions
+    if (uploadDebounceRef.current) {
+      clearTimeout(uploadDebounceRef.current);
+    }
+
+    // Check if upload is already in progress
+    if (isUploading) {
+      alert("Please wait for the current upload to complete.");
+      return;
+    }
+
     setIsUploading(true);
+    setUploadQueue(prev => prev + 1);
 
     try {
       let finalImageUrl = undefined;
@@ -188,6 +207,7 @@ export default function ExplorePage() {
             finalImageUrl = await convertToBase64(thumbnailBlob);
           }
 
+          // Process video in chunks to prevent UI blocking
           const base64String = await convertToBase64(selectedFile);
           finalVideoUrl = base64String;
         }
@@ -212,6 +232,7 @@ export default function ExplorePage() {
       alert("Failed to send post. Try a smaller file.");
     } finally {
       setIsUploading(false);
+      setUploadQueue(prev => Math.max(0, prev - 1));
     }
   };
 

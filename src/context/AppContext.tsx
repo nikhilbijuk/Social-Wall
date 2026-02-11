@@ -31,21 +31,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const ensureTableExists = async () => {
     try {
-      await turso.execute(`
-        );
-      `);
+      // Indexing logic - ensuring the base table exists is normally handled at DB setup, 
+      // but we maintain the index check here.
       await turso.execute(`
         CREATE INDEX IF NOT EXISTS idx_posts_timestamp ON posts(timestamp DESC);
       `);
-      console.log("Database schema and indexing verified.");
+      console.log("Database indexing verified.");
     } catch (error) {
-      console.error("Error verifying schema or index:", error);
+      console.error("Error verifying index:", error);
     }
   };
 
   const fetchPosts = async (isInitial = false) => {
     try {
-      let query = 'SELECT * FROM posts ORDER BY timestamp DESC LIMIT 20';
+      // Load only viewport-sized batch initially (3-5 posts fit on screen)
+      let query = 'SELECT * FROM posts ORDER BY timestamp DESC LIMIT 5';
       let args: any[] = [];
 
       if (!isInitial && latestTimestampRef.current > 0) {
@@ -69,7 +69,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }));
 
       if (isInitial) {
-        setPosts(newPosts);
+        // Progressive loading: Add posts in batches to prevent UI blocking
+        const BATCH_SIZE = 5;
+        for (let i = 0; i < newPosts.length; i += BATCH_SIZE) {
+          const batch = newPosts.slice(i, i + BATCH_SIZE);
+          setPosts((prev) => [...prev, ...batch]);
+
+          // Update progress
+          const progress = 40 + Math.floor((i / newPosts.length) * 60);
+          setLoadingProgress(progress);
+
+          // Small delay to allow UI to update
+          if (i + BATCH_SIZE < newPosts.length) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+          }
+        }
+
         if (newPosts.length > 0) {
           latestTimestampRef.current = newPosts[0].timestamp;
         }
@@ -96,6 +111,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await ensureTableExists();
       setLoadingProgress(40);
       await fetchPosts(true);
+      // fetchPosts now handles progress updates internally
       setLoadingProgress(100);
 
       // Small delay to show 100%
@@ -103,12 +119,52 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     init();
 
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        fetchPosts(false);
+    // Polling with tab visibility optimization
+    let intervalId: NodeJS.Timeout | null = null;
+
+    const startPolling = () => {
+      if (intervalId) return; // Already polling
+
+      intervalId = setInterval(() => {
+        // Double-check visibility before fetching
+        if (document.visibilityState === 'visible') {
+          fetchPosts(false);
+        }
+      }, 20000); // Poll every 20s when visible
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
       }
-    }, 15000); // Increased to 15s for better traffic management
-    return () => clearInterval(interval);
+    };
+
+    // Handle visibility changes
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Tab visible - resuming database polling');
+        startPolling();
+        // Fetch immediately when tab becomes visible
+        fetchPosts(false);
+      } else {
+        console.log('Tab hidden - pausing database polling');
+        stopPolling();
+      }
+    };
+
+    // Start polling if tab is visible
+    if (document.visibilityState === 'visible') {
+      startPolling();
+    }
+
+    // Listen for visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []); // Run once on mount
 
 
@@ -170,11 +226,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
           postToSave.timestamp
         ],
       });
+      console.log("Post successfully saved to database");
     } catch (error) {
       console.error('Database Error:', error);
       // Remove optimistic post on failure
       setPosts((prev) => prev.filter(p => p.id !== id));
-      alert(`Upload Failed: ${error instanceof Error ? error.message : JSON.stringify(error)} `);
+
+      // Provide more specific error messages
+      let errorMessage = 'Upload Failed: ';
+      if (error instanceof Error) {
+        if (error.message.includes('SQLITE_TOOBIG') || error.message.includes('too large')) {
+          errorMessage += 'File is too large for database. Try compressing further.';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage += 'Network error. Check your connection and try again.';
+        } else {
+          errorMessage += error.message;
+        }
+      } else {
+        errorMessage += 'Unknown error occurred. Please try again.';
+      }
+
+      alert(errorMessage);
       throw error; // Re-throw so the UI knows it failed
     }
   };
