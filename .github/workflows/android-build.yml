@@ -39,7 +39,7 @@ jobs:
           VITE_TURSO_AUTH_TOKEN: ${{ secrets.VITE_TURSO_AUTH_TOKEN }}
           UPLOADTHING_SECRET: ${{ secrets.UPLOADTHING_SECRET }}
           UPLOADTHING_APP_ID: ${{ secrets.UPLOADTHING_APP_ID }}
-        run: npm run build -- --prod
+        run: npm run build
 
       - name: Sync Capacitor
         run: npx cap sync android
