@@ -35,6 +35,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const latestTimestampRef = useRef<number>(0);
   const oldestTimestampRef = useRef<number>(Date.now());
 
+  // Check for critical configuration
+  if (!import.meta.env.VITE_TURSO_DB_URL || !import.meta.env.VITE_TURSO_AUTH_TOKEN) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-100 p-4 text-center">
+        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md">
+          <h1 className="text-xl font-bold text-red-600 mb-4">Configuration Missing</h1>
+          <p className="text-gray-700 mb-4">
+            The application cannot connect to the database because environment variables are missing.
+          </p>
+          <div className="bg-gray-100 p-3 rounded text-left text-xs font-mono text-gray-600 overflow-x-auto">
+            <p>VITE_TURSO_DB_URL: {import.meta.env.VITE_TURSO_DB_URL ? '✅ Set' : '❌ Missing'}</p>
+            <p>VITE_TURSO_AUTH_TOKEN: {import.meta.env.VITE_TURSO_AUTH_TOKEN ? '✅ Set' : '❌ Missing'}</p>
+          </div>
+          <p className="mt-4 text-sm text-gray-500">
+            Please configure your .env file or build secrets.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const ensureTableExists = async () => {
     try {
       // Create table if not exists with new schema
