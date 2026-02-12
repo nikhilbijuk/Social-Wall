@@ -6,9 +6,10 @@ export interface Post {
   content: string;
   type: 'update' | 'event' | 'alert';
   tag: string;
-  imageUrl?: string;
-  videoUrl?: string; // Change 1: Added videoUrl
+  fileUrl?: string;
+  mediaType?: 'image' | 'video';
   likes_count: number;
+  thumbs_up_count: number;
   timestamp: number;
 }
 
@@ -16,8 +17,11 @@ interface AppContextType {
   posts: Post[];
   isLoading: boolean;
   loadingProgress: number;
-  addPost: (post: Omit<Post, 'id' | 'timestamp' | 'likes_count'>) => Promise<void>;
+  hasMore: boolean;
+  loadMorePosts: () => Promise<void>;
+  addPost: (post: Omit<Post, 'id' | 'timestamp' | 'likes_count' | 'thumbs_up_count'>) => Promise<void>;
   handleLike: (postId: string, currentLikes: number) => Promise<void>;
+  handleThumbUp: (postId: string, currentThumbs: number) => Promise<void>;
   login: (email: string, team: string) => Promise<void>;
 }
 
@@ -27,19 +31,61 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const latestTimestampRef = useRef<number>(0);
+  const oldestTimestampRef = useRef<number>(Date.now());
 
   const ensureTableExists = async () => {
     try {
-      // Indexing logic - ensuring the base table exists is normally handled at DB setup, 
-      // but we maintain the index check here.
+      // Create table if not exists with new schema
+      await turso.execute(`
+        CREATE TABLE IF NOT EXISTS posts (
+          id TEXT PRIMARY KEY,
+          content TEXT,
+          type TEXT,
+          tag TEXT,
+          file_url TEXT,
+          media_type TEXT,
+          likes_count INTEGER DEFAULT 0,
+          thumbs_up_count INTEGER DEFAULT 0,
+          timestamp INTEGER
+        );
+      `);
+
+      // Migration: Add columns if they don't exist (primitive migration)
+      try {
+        await turso.execute("ALTER TABLE posts ADD COLUMN file_url TEXT");
+        console.log("Added file_url column");
+      } catch (e) { /* ignore if exists */ }
+
+      try {
+        await turso.execute("ALTER TABLE posts ADD COLUMN media_type TEXT");
+        console.log("Added media_type column");
+      } catch (e) { /* ignore if exists */ }
+
+      try { await turso.execute("ALTER TABLE posts ADD COLUMN thumbs_up_count INTEGER DEFAULT 0"); } catch (e) { }
+
       await turso.execute(`
         CREATE INDEX IF NOT EXISTS idx_posts_timestamp ON posts(timestamp DESC);
       `);
-      console.log("Database indexing verified.");
+      console.log("Database schema verified.");
     } catch (error) {
-      console.error("Error verifying index:", error);
+      console.error("Error verifying schema:", error);
     }
+  };
+
+  const processRows = (rows: any[]): Post[] => {
+    return rows.map((row: any) => ({
+      id: row.id as string,
+      content: row.content as string,
+      type: row.type as 'update' | 'event' | 'alert',
+      tag: row.tag as string,
+      fileUrl: (row.file_url) || (row.imageUrl) || (row.videoUrl) || undefined,
+      mediaType: (row.media_type as 'image' | 'video') || (row.videoUrl ? 'video' : row.imageUrl ? 'image' : undefined),
+      likes_count: row.likes_count as number,
+      thumbs_up_count: (row.thumbs_up_count) || 0,
+      timestamp: row.timestamp as number,
+    }));
   };
 
   const fetchPosts = async (isInitial = false) => {
@@ -49,6 +95,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       let args: any[] = [];
 
       if (!isInitial && latestTimestampRef.current > 0) {
+        // Polling for NEWER posts
         query = 'SELECT * FROM posts WHERE timestamp > ? ORDER BY timestamp DESC';
         args = [latestTimestampRef.current];
       }
@@ -57,16 +104,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       if (result.rows.length === 0) return;
 
-      const newPosts: Post[] = result.rows.map((row: any) => ({
-        id: row.id as string,
-        content: row.content as string,
-        type: row.type as 'update' | 'event' | 'alert',
-        tag: row.tag as string,
-        imageUrl: (row.imageUrl as string) || undefined,
-        videoUrl: (row.videoUrl as string) || undefined,
-        likes_count: row.likes_count as number,
-        timestamp: row.timestamp as number,
-      }));
+      const newPosts = processRows(result.rows);
 
       if (isInitial) {
         // Progressive loading: Add posts in batches to prevent UI blocking
@@ -87,6 +125,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         if (newPosts.length > 0) {
           latestTimestampRef.current = newPosts[0].timestamp;
+          // Set oldest timestamp for pagination
+          const oldest = newPosts[newPosts.length - 1].timestamp;
+          oldestTimestampRef.current = oldest;
         }
       } else {
         setPosts((prev) => {
@@ -101,6 +142,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error fetching posts from Turso:', error);
+    }
+  };
+
+  const loadMorePosts = async () => {
+    if (!hasMore || isLoading) return;
+
+    try {
+      const query = 'SELECT * FROM posts WHERE timestamp < ? ORDER BY timestamp DESC LIMIT 5';
+      const args = [oldestTimestampRef.current];
+
+      const result = await turso.execute({ sql: query, args });
+
+      if (result.rows.length === 0) {
+        setHasMore(false);
+        return;
+      }
+
+      const olderPosts = processRows(result.rows);
+
+      setPosts(prev => {
+        const existingIds = new Set(prev.map(p => p.id));
+        const filtered = olderPosts.filter(p => !existingIds.has(p.id));
+        return [...prev, ...filtered];
+      });
+
+      // Update oldest timestamp
+      const lastPost = olderPosts[olderPosts.length - 1];
+      oldestTimestampRef.current = lastPost.timestamp;
+
+    } catch (error) {
+      console.error("Error loading more posts:", error);
     }
   };
 
@@ -193,16 +265,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addPost = async (newPost: Omit<Post, 'id' | 'timestamp' | 'likes_count'>) => {
+  const handleThumbUp = async (postId: string, currentThumbs: number) => {
+    const newThumbs = (currentThumbs || 0) + 1;
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId ? { ...post, thumbs_up_count: newThumbs } : post
+      )
+    );
+
+    try {
+      await turso.execute({
+        sql: 'UPDATE posts SET thumbs_up_count = ? WHERE id = ?',
+        args: [newThumbs, postId],
+      });
+    } catch (error) {
+      console.error('Error updating thumbs up:', error);
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === postId ? { ...post, thumbs_up_count: currentThumbs } : post
+        )
+      );
+    }
+  };
+
+  const addPost = async (newPost: Omit<Post, 'id' | 'timestamp' | 'likes_count' | 'thumbs_up_count'>) => {
     const id = crypto.randomUUID();
     const timestamp = Date.now();
     const likes_count = 0;
+    const thumbs_up_count = 0;
 
     const postToSave: Post = {
       ...newPost,
       id,
       timestamp,
-      likes_count
+      likes_count,
+      thumbs_up_count
     };
 
     // Optimistic UI update
@@ -214,15 +311,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     try {
       await turso.execute({
-        sql: 'INSERT INTO posts (id, content, type, tag, imageUrl, videoUrl, likes_count, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        sql: 'INSERT INTO posts (id, content, type, tag, file_url, media_type, likes_count, thumbs_up_count, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         args: [
           postToSave.id,
           postToSave.content,
           postToSave.type,
           postToSave.tag,
-          postToSave.imageUrl || null,
-          postToSave.videoUrl || null,
+          postToSave.fileUrl || null,
+          postToSave.mediaType || null,
           postToSave.likes_count,
+          postToSave.thumbs_up_count,
           postToSave.timestamp
         ],
       });
@@ -258,7 +356,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AppContext.Provider value={{ posts, isLoading, loadingProgress, addPost, handleLike, login }}>
+    <AppContext.Provider value={{ posts, isLoading, loadingProgress, hasMore, loadMorePosts, addPost, handleLike, handleThumbUp, login }}>
       {children}
     </AppContext.Provider>
   );

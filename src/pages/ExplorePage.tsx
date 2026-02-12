@@ -1,11 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import GlassCard from '../components/ui/GlassCard';
 import LoadingOverlay from '../components/ui/LoadingOverlay';
-import { Send, Image as ImageIcon, Video, X } from 'lucide-react';
+import { Send, Image as ImageIcon, Video, X, Loader2 } from 'lucide-react';
+import { useUploadThing } from '../components/UploadButton';
 
 export default function ExplorePage() {
-  const { posts, addPost, handleLike, isLoading, loadingProgress } = useApp();
+  const { posts, addPost, handleLike, handleThumbUp, isLoading, loadingProgress, hasMore, loadMorePosts } = useApp();
   const [text, setText] = useState('');
 
   // File States
@@ -14,33 +15,55 @@ export default function ExplorePage() {
   const [fileType, setFileType] = useState<'image' | 'video' | null>(null);
 
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadQueue, setUploadQueue] = useState<number>(0);
-  const uploadDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
-  // Removed auto-scroll to bottom to keep newest posts visible at the top
-  /*
+  // Infinite Scroll Ref
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // UploadThing Hook
+  const { startUpload } = useUploadThing(fileType === 'video' ? "videoUploader" : "imageUploader", {
+    onUploadProgress: (p) => {
+      setUploadProgress(p);
+    }
+  });
+
+  // Infinite Scroll Observer
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [posts]);
-  */
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
+          loadMorePosts();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, isLoading, loadMorePosts]);
+
 
   // Handle File Selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Size Validation - Separate limits for images and videos
-    const MAX_IMAGE_SIZE = 8 * 1024 * 1024; // 8MB
-    const MAX_VIDEO_SIZE = 15 * 1024 * 1024; // 15MB
+    // Size Validation - Matching server limits roughly (client side check)
+    // Server: 4MB Image, 16MB Video
+    const MAX_IMAGE_SIZE = 4 * 1024 * 1024;
+    const MAX_VIDEO_SIZE = 16 * 1024 * 1024;
 
     const maxSize = type === 'image' ? MAX_IMAGE_SIZE : MAX_VIDEO_SIZE;
-    const sizeLabel = type === 'image' ? '8MB' : '15MB';
+    const sizeLabel = type === 'image' ? '4MB' : '16MB';
 
     if (file.size > maxSize) {
-      alert(`File too large! Please select a ${type} under ${sizeLabel} for better performance.`);
+      alert(`File too large! Please select a ${type} under ${sizeLabel}.`);
       return;
     }
 
@@ -63,164 +86,38 @@ export default function ExplorePage() {
     if (videoInputRef.current) videoInputRef.current.value = '';
   };
 
-  // Image Compression
-  const compressImage = (file: File): Promise<Blob> => {
-    return new Promise((resolve) => {
-      try {
-        console.log(`Starting HD compression for: ${file.name} (${(file.size / 1024).toFixed(2)}KB)`);
-        const img = new Image();
-        img.src = URL.createObjectURL(file);
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-
-          // Max dimensions for HD compression
-          const MAX_WIDTH = 1920;
-          const MAX_HEIGHT = 1920;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-
-          canvas.toBlob((blob) => {
-            URL.revokeObjectURL(img.src);
-            if (blob) {
-              console.log(`HD Compression complete: ${(blob.size / 1024).toFixed(2)}KB`);
-              resolve(blob);
-            } else {
-              console.warn("Blob creation failed, using original file.");
-              resolve(file);
-            }
-          }, 'image/jpeg', 0.8); // 80% quality for crisp HD
-        };
-        img.onerror = () => {
-          URL.revokeObjectURL(img.src);
-          console.error("Image loading failed for compression. Possibly unsupported format.");
-          resolve(file); // Fallback to original
-        };
-      } catch (err) {
-        console.error("Compression error:", err);
-        resolve(file);
-      }
-    });
-  };
-
-  // Convert File to Base64
-  const convertToBase64 = (file: File | Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
-  };
-
-  // Video Thumbnail Generation
-  const captureVideoThumbnail = (file: File): Promise<Blob | null> => {
-    return new Promise((resolve) => {
-      console.log(`Generating thumbnail for: ${file.name}`);
-      const video = document.createElement('video');
-      const videoUrl = URL.createObjectURL(file);
-      video.src = videoUrl;
-      video.crossOrigin = 'anonymous';
-      video.preload = 'metadata';
-
-      video.onloadedmetadata = () => {
-        video.currentTime = 0.5; // Capture at 0.5 seconds
-      };
-
-      video.onseeked = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 400; // Small thumbnail
-        canvas.height = (video.videoHeight / video.videoWidth) * canvas.width;
-
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        canvas.toBlob((blob) => {
-          URL.revokeObjectURL(videoUrl);
-          if (blob) {
-            console.log("Thumbnail generated successfully.");
-            resolve(blob);
-          } else {
-            console.warn("Thumbnail blob creation failed.");
-            resolve(null);
-          }
-        }, 'image/jpeg', 0.6);
-      };
-
-      video.onerror = () => {
-        URL.revokeObjectURL(videoUrl);
-        console.error("Video thumbnail generation failed.");
-        resolve(null);
-      };
-    });
-  };
-
   const handlePost = async () => {
     if (!text.trim() && !selectedFile) return;
 
-    // Debounce: Prevent rapid-fire submissions
-    if (uploadDebounceRef.current) {
-      clearTimeout(uploadDebounceRef.current);
-    }
-
-    // Check if upload is already in progress
-    if (isUploading) {
-      alert("Please wait for the current upload to complete.");
-      return;
-    }
+    if (isUploading) return;
 
     setIsUploading(true);
-    setUploadQueue(prev => prev + 1);
+    setUploadProgress(0);
 
     try {
-      let finalImageUrl = undefined;
-      let finalVideoUrl = undefined;
+      let finalFileUrl = undefined;
+      let finalMediaType: 'image' | 'video' | undefined = undefined;
 
       if (selectedFile) {
-        let fileToUpload: File | Blob = selectedFile;
+        // Start UploadThing Upload
+        console.log("Starting upload...");
+        const res = await startUpload([selectedFile]);
 
-        // Compress if it's an image
-        if (fileType === 'image') {
-          fileToUpload = await compressImage(selectedFile);
-          const base64String = await convertToBase64(fileToUpload);
-          finalImageUrl = base64String;
-        } else if (fileType === 'video') {
-          // Generate thumbnail for video
-          const thumbnailBlob = await captureVideoThumbnail(selectedFile);
-          if (thumbnailBlob) {
-            finalImageUrl = await convertToBase64(thumbnailBlob);
-          }
-
-          // Process video in chunks to prevent UI blocking
-          const base64String = await convertToBase64(selectedFile);
-          finalVideoUrl = base64String;
+        if (!res || res.length === 0) {
+          throw new Error("Upload failed");
         }
-      }
 
-      console.log("Submitting post to AppContext...");
+        finalFileUrl = res[0].url;
+        finalMediaType = fileType || undefined;
+        console.log("Upload successful:", finalFileUrl);
+      }
 
       await addPost({
         content: text,
         type: 'update',
         tag: 'Update',
-        imageUrl: finalImageUrl,
-        videoUrl: finalVideoUrl
+        fileUrl: finalFileUrl,
+        mediaType: finalMediaType
       });
 
       // Cleanup
@@ -229,10 +126,10 @@ export default function ExplorePage() {
 
     } catch (error) {
       console.error("Failed to post:", error);
-      alert("Failed to send post. Try a smaller file.");
+      alert("Failed to send post. Please try again.");
     } finally {
       setIsUploading(false);
-      setUploadQueue(prev => Math.max(0, prev - 1));
+      setUploadProgress(0);
     }
   };
 
@@ -253,19 +150,39 @@ export default function ExplorePage() {
               <span className="text-[10px] text-gray-500 font-medium">
                 {new Date(post.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
-              <button
-                onClick={() => handleLike(post.id, post.likes_count)}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/50 border border-gray-200 hover:bg-red-50 transition-all group shadow-sm"
-              >
-                <span className="text-sm group-hover:scale-110 transition-transform">❤️</span>
-                <span className="text-[11px] font-bold text-gray-600">
-                  {post.likes_count || 0}
-                </span>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handleLike(post.id, post.likes_count)}
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/50 border border-gray-200 hover:bg-red-50 transition-all group shadow-sm"
+                >
+                  <span className="text-sm group-hover:scale-110 transition-transform">❤️</span>
+                  <span className="text-[11px] font-bold text-gray-600">
+                    {post.likes_count || 0}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => handleThumbUp(post.id, post.thumbs_up_count)}
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/50 border border-gray-200 hover:bg-green-50 transition-all group shadow-sm"
+                >
+                  <span className="text-sm group-hover:scale-110 transition-transform">👍</span>
+                  <span className="text-[11px] font-bold text-gray-600">
+                    {post.thumbs_up_count || 0}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         ))}
-        <div className="h-4 w-full shrink-0" /> {/* Bottom spacer for better scroll feeling */}
+
+        {/* Infinite Scroll Loader */}
+        <div ref={loadMoreRef} className="h-8 w-full flex items-center justify-center shrink-0">
+          {hasMore ? (
+            <Loader2 className="animate-spin text-gray-400" size={20} />
+          ) : (
+            <span className="text-xs text-gray-400">No more posts</span>
+          )}
+        </div>
       </div>
 
       {/* Input Area */}
@@ -316,9 +233,16 @@ export default function ExplorePage() {
               ) : (
                 <video src={previewUrl} className="h-20 w-auto rounded-md object-cover border border-gray-200" />
               )}
-              <button onClick={clearAttachment} className="p-1 hover:bg-gray-200 rounded-full">
-                <X size={16} className="text-gray-500" />
-              </button>
+              <div className="flex flex-col gap-1 items-end">
+                <button onClick={clearAttachment} className="p-1 hover:bg-gray-200 rounded-full">
+                  <X size={16} className="text-gray-500" />
+                </button>
+                {isUploading && (
+                  <div className="text-[10px] text-green-600 font-medium">
+                    Uploading... {uploadProgress}%
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -329,6 +253,15 @@ export default function ExplorePage() {
             className="w-full bg-transparent p-3 pt-3 max-h-32 min-h-[48px] focus:outline-none resize-none text-black placeholder-gray-400 font-sans"
             rows={1}
           />
+          {/* Progress Bar Line */}
+          {isUploading && (
+            <div className="w-full h-1 bg-gray-100">
+              <div
+                className="h-full bg-green-500 transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Send Button */}
@@ -338,7 +271,7 @@ export default function ExplorePage() {
           className="mb-1 p-3 bg-[#00A884] hover:bg-[#008f6f] text-white rounded-full shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
         >
           {isUploading ? (
-            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <Loader2 size={20} className="animate-spin" />
           ) : (
             <Send size={20} className="ml-0.5" />
           )}
