@@ -1,16 +1,20 @@
-import { createRouteHandler } from "uploadthing/next-legacy";
-import { appFileRouter } from "../src/server/uploadthing.ts";
+import { createRouteHandler } from "uploadthing/server";
+import { appFileRouter } from "../src/server/uploadthing.js";
 
 const handler = createRouteHandler({
     router: appFileRouter,
 });
 
-export default async function apiHandler(req: any, res: any) {
+export default async function apiHandler(req: Request) {
     try {
-        return await handler(req, res);
+        // Vercel standalone functions with standard 'Request' input
+        return await handler(req);
     } catch (err: any) {
         console.error("UploadThing handler error:", err);
-        res.status(500).json({ error: "Internal Server Error", details: err.message });
+        return new Response(JSON.stringify({ error: "Internal Server Error", details: err.message }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 }
 
