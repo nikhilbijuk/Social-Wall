@@ -255,15 +255,16 @@ export default function ExplorePage() {
                 handlePost();
               }
             }}
-            placeholder="Type a message"
-            className="w-full bg-transparent p-3 pt-3 max-h-32 min-h-[48px] focus:outline-none resize-none text-black placeholder-gray-400 font-sans"
+            disabled={isUploading}
+            placeholder={isUploading ? "Processing..." : "Type a message"}
+            className="w-full bg-transparent p-3 pt-3 max-h-32 min-h-[48px] focus:outline-none resize-none text-black placeholder-gray-400 font-sans disabled:opacity-50"
             rows={1}
           />
           {/* Progress Bar Line */}
           {isUploading && (
             <div className="w-full h-1 bg-gray-100">
               <div
-                className="h-full bg-green-500 transition-all duration-300"
+                className="h-full bg-[#00A884] transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               />
             </div>
@@ -274,10 +275,11 @@ export default function ExplorePage() {
         <button
           onClick={handlePost}
           disabled={(!text.trim() && !selectedFile) || isUploading}
-          className="mb-1 p-3 bg-[#00A884] hover:bg-[#008f6f] text-white rounded-full shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+          className="mb-1 p-3 bg-[#00A884] hover:bg-[#008f6f] text-white rounded-full shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center min-w-[48px]"
+          title={isUploading ? "Processing..." : "Send"}
         >
           {isUploading ? (
-            <Loader2 size={20} className="animate-spin" />
+            <Loader2 size={20} className="animate-spin text-white" />
           ) : (
             <Send size={20} className="ml-0.5" />
           )}
