@@ -5,7 +5,7 @@ const f = createUploadthing();
 // FileRouter for your app, can contain multiple FileRoutes
 export const appFileRouter = {
     // Define as many FileRoutes as you like, each with a unique routeSlug
-    imageUploader: f({ image: { maxFileSize: "5MB", maxFileCount: 1 } })
+    imageUploader: f({ image: { maxFileSize: "4MB", maxFileCount: 1 } })
         // Set permissions and file types for this FileRoute
         .onUploadComplete(async ({ metadata, file }) => {
             // This code RUNS ON YOUR SERVER after upload
@@ -16,7 +16,7 @@ export const appFileRouter = {
             return { uploadedBy: "user", url: file.url };
         }),
 
-    videoUploader: f({ video: { maxFileSize: "15MB", maxFileCount: 1 } })
+    videoUploader: f({ video: { maxFileSize: "16MB", maxFileCount: 1 } })
         .onUploadComplete(async ({ metadata, file }) => {
             console.log("Video upload complete");
             return { uploadedBy: "user", url: file.url };

@@ -1,5 +1,5 @@
 import { createRouteHandler } from "uploadthing/next-legacy";
-import { appFileRouter } from "../src/server/uploadthing";
+import { appFileRouter } from "../src/server/uploadthing.ts";
 
 const handler = createRouteHandler({
     router: appFileRouter,
