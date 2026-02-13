@@ -249,6 +249,12 @@ export default function ExplorePage() {
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handlePost();
+              }
+            }}
             placeholder="Type a message"
             className="w-full bg-transparent p-3 pt-3 max-h-32 min-h-[48px] focus:outline-none resize-none text-black placeholder-gray-400 font-sans"
             rows={1}
