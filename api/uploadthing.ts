@@ -1,6 +1,8 @@
 import { createRouteHandler, createUploadthing, type FileRouter } from "uploadthing/server";
 
-export const runtime = "edge";
+export const config = {
+    runtime: "nodejs",
+};
 
 const f = createUploadthing();
 
@@ -18,6 +20,11 @@ const appFileRouter = {
         }),
 } satisfies FileRouter;
 
-export default createRouteHandler({
+export const { GET, POST } = createRouteHandler({
     router: appFileRouter,
 });
+
+export default async function handler(req: any, res: any) {
+    if (req.method === "GET") return await GET(req, res);
+    if (req.method === "POST") return await POST(req, res);
+}
