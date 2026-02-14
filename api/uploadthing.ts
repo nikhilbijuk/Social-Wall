@@ -1,6 +1,8 @@
 import { createRouteHandler, createUploadthing, type FileRouter } from "uploadthing/server";
 
-export const runtime = "edge";
+export const config = {
+    runtime: "nodejs",
+};
 
 const f = createUploadthing();
 
