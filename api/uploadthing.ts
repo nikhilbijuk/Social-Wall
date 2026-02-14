@@ -1,8 +1,6 @@
 import { createRouteHandler } from "uploadthing/server";
-import { appFileRouter } from "../src/server/uploadthing.js";
+import { appFileRouter } from "../src/server/uploadthing";
 
-export const runtime = "edge";
-
-export const { GET, POST } = createRouteHandler({
+export default createRouteHandler({
     router: appFileRouter,
 });
