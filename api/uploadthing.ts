@@ -20,18 +20,6 @@ const appFileRouter = {
         }),
 } satisfies FileRouter;
 
-const handler = createRouteHandler({
+export default createRouteHandler({
     router: appFileRouter,
 });
-
-export default async function (req: Request) {
-    console.log(`[UploadThing API] ${req.method} request received`);
-    try {
-        const response = await handler(req);
-        console.log(`[UploadThing API] Response status: ${response.status}`);
-        return response;
-    } catch (error) {
-        console.error(`[UploadThing API] Error:`, error);
-        throw error;
-    }
-}
