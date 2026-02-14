@@ -1,4 +1,5 @@
 import { createRouteHandler, createUploadthing, type FileRouter } from "uploadthing/server";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 export const config = {
     runtime: "nodejs",
@@ -20,11 +21,10 @@ const appFileRouter = {
         }),
 } satisfies FileRouter;
 
-export const { GET, POST } = createRouteHandler({
+const handler = createRouteHandler({
     router: appFileRouter,
 });
 
-export default async function handler(req: any, res: any) {
-    if (req.method === "GET") return await GET(req, res);
-    if (req.method === "POST") return await POST(req, res);
+export default async function (req: VercelRequest, res: VercelResponse) {
+    return await handler(req, res);
 }
