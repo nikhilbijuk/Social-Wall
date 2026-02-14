@@ -238,7 +238,7 @@ export default function ExplorePage() {
                   <X size={16} className="text-gray-500" />
                 </button>
                 {isUploading && (
-                  <div className="text-[10px] text-green-600 font-medium">
+                  <div className="text-[10px] text-[#00A884] font-medium">
                     Uploading... {uploadProgress}%
                   </div>
                 )}

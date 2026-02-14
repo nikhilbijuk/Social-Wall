@@ -201,14 +201,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const init = async () => {
       setIsLoading(true);
       setLoadingProgress(10);
-      await ensureTableExists();
-      setLoadingProgress(40);
-      await fetchPosts(true);
-      // fetchPosts now handles progress updates internally
-      setLoadingProgress(100);
 
-      // Small delay to show 100%
-      setTimeout(() => setIsLoading(false), 500);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT')), 5000)
+      );
+
+      try {
+        await Promise.race([
+          (async () => {
+            await ensureTableExists();
+            setLoadingProgress(40);
+            await fetchPosts(true);
+            setLoadingProgress(100);
+          })(),
+          timeoutPromise
+        ]);
+
+        setTimeout(() => setIsLoading(false), 500);
+      } catch (error) {
+        if (error instanceof Error && error.message === 'TIMEOUT') {
+          console.error("Database connection timed out.");
+          setLoadingProgress(0);
+          alert("The database is taking longer than usual to respond. We are still trying to connect in the background...");
+          setIsLoading(false);
+        } else {
+          console.error("Initialization error:", error);
+          setIsLoading(false);
+        }
+      }
     };
     init();
 
