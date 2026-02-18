@@ -17,7 +17,7 @@ A premium, glassmorphism-themed social wall where users can share text, images, 
 | **File Storage** | UploadThing |
 | **Icons** | Lucide React |
 | **Animations** | Framer Motion |
-| **Deployment** | Vercel (Standard Node.js Serverless Functions) |
+| **Deployment** | Vercel (Standard Node.js 24.x Serverless Functions) |
 
 ---
 
@@ -83,14 +83,19 @@ Uses `react-router-dom` v7. Focuses on a dashboard-style layout:
 
 ---
 
-## 7. Configuration for Production (Vercel)
-
 ### **`vercel.json`**
-Essential for SPA routing. The `/api` rewrite is omitted to allow Vercel's native automatic detection.
+Essential for SPA routing. The `/api` rewrite is included to ensure correct routing between frontend and backend.
 ```json
 {
   "rewrites": [
-    { "source": "/((?!api/.*).*)", "destination": "/index.html" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
 ```
