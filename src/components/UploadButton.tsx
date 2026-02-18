@@ -1,5 +1,5 @@
 import { generateUploadButton, generateReactHelpers } from "@uploadthing/react";
-import type { AppFileRouter } from "../server/uploadthing";
+import type { AppFileRouter } from "../../api/uploadthing";
 
 export const UploadButton = generateUploadButton<AppFileRouter>();
 

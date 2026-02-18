@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import GlassCard from '../components/ui/GlassCard';
 import LoadingOverlay from '../components/ui/LoadingOverlay';
-import { Send, Image as ImageIcon, Video, X, Loader2 } from 'lucide-react';
+import { Send, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import { useUploadThing } from '../components/UploadButton';
 
 export default function ExplorePage() {
@@ -17,14 +17,13 @@ export default function ExplorePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Infinite Scroll Ref
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // UploadThing Hook
-  const { startUpload } = useUploadThing(fileType === 'video' ? "videoUploader" : "imageUploader", {
+  const { startUpload } = useUploadThing("mediaUploader", {
     onUploadProgress: (p) => {
       setUploadProgress(p);
     }
@@ -50,15 +49,16 @@ export default function ExplorePage() {
 
 
   // Handle File Selection
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Size Validation - Matching server limits roughly (client side check)
-    // Server: 4MB Image, 16MB Video
+    const isVideo = file.type.startsWith('video');
+    const type = isVideo ? 'video' : 'image';
+
+    // Size Validation
     const MAX_IMAGE_SIZE = 4 * 1024 * 1024;
     const MAX_VIDEO_SIZE = 16 * 1024 * 1024;
-
     const maxSize = type === 'image' ? MAX_IMAGE_SIZE : MAX_VIDEO_SIZE;
     const sizeLabel = type === 'image' ? '4MB' : '16MB';
 
@@ -82,8 +82,7 @@ export default function ExplorePage() {
     setSelectedFile(null);
     setPreviewUrl(null);
     setFileType(null);
-    if (imageInputRef.current) imageInputRef.current.value = '';
-    if (videoInputRef.current) videoInputRef.current.value = '';
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handlePost = async () => {
@@ -190,36 +189,21 @@ export default function ExplorePage() {
         {/* Hidden Inputs */}
         <input
           type="file"
-          ref={imageInputRef}
-          onChange={(e) => handleFileSelect(e, 'image')}
-          accept="image/*"
-          className="hidden"
-        />
-        <input
-          type="file"
-          ref={videoInputRef}
-          onChange={(e) => handleFileSelect(e, 'video')}
-          accept="video/*"
+          ref={fileInputRef}
+          onChange={handleFileSelect}
+          accept="image/*,video/*"
           className="hidden"
         />
 
         {/* Attachment Buttons */}
         <div className="flex gap-1 pb-3 text-gray-500">
           <button
-            onClick={() => imageInputRef.current?.click()}
+            onClick={() => fileInputRef.current?.click()}
             disabled={!!selectedFile}
             className="p-2 hover:bg-gray-200 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            title={selectedFile ? "Only one file allowed" : "Attach Image"}
+            title={selectedFile ? "Only one file allowed" : "Attach Photo or Video"}
           >
             <ImageIcon size={24} />
-          </button>
-          <button
-            onClick={() => videoInputRef.current?.click()}
-            disabled={!!selectedFile}
-            className="p-2 hover:bg-gray-200 rounded-full transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            title={selectedFile ? "Only one file allowed" : "Attach Video"}
-          >
-            <Video size={24} />
           </button>
         </div>
 
