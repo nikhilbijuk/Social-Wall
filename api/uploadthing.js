@@ -1,5 +1,4 @@
 import { createUploadthing, createRouteHandler } from "uploadthing/server";
-import type { FileRouter } from "uploadthing/server";
 
 export const config = {
     runtime: "nodejs",
@@ -7,7 +6,7 @@ export const config = {
 
 const f = createUploadthing();
 
-export const uploadRouter = {
+const uploadRouter = {
     mediaUploader: f({
         image: { maxFileSize: "4MB", maxFileCount: 1 },
         video: { maxFileSize: "16MB", maxFileCount: 1 },
@@ -15,7 +14,7 @@ export const uploadRouter = {
         console.log("Media upload complete:", file.url);
         return { uploadedBy: "user", url: file.url };
     }),
-} satisfies FileRouter;
+};
 
 export default createRouteHandler({
     router: uploadRouter,
