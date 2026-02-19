@@ -1,5 +1,3 @@
-export const runtime = "edge";
-
 import { createUploadthing, createRouteHandler } from "uploadthing/server";
 
 const f = createUploadthing();
