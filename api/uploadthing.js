@@ -7,11 +7,12 @@ const fileRouter = {
         image: { maxFileSize: "4MB", maxFileCount: 1 },
         video: { maxFileSize: "16MB", maxFileCount: 1 },
     }).onUploadComplete(async ({ file }) => {
-        console.log("Media upload complete:", file.url);
-        return { uploadedBy: "user", url: file.url };
+        console.log("Upload complete:", file.url);
+        return { url: file.url };
     }),
 };
 
-export const { GET, POST } = createRouteHandler({
+// ✅ Vercel Serverless requires default export
+export default createRouteHandler({
     router: fileRouter,
 });
