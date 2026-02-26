@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme {
+    /* Premium WhatsApp-like Theme */
+    --color-background: #EFE7DD;
+    --color-surface: #FFFFFF;
+    --color-primary: #00A884;
+    --color-secondary: #34B7F1;
+    --color-accent: #25D366;
+    --color-card: #FFFFFF;
+    --color-border: #E2E8F0;
+    --color-white: #FFFFFF;
+    --color-dark: #111B21;
+
+    --font-sans: "Inter", "Geist Sans", sans-serif;
+    --font-heading: "Inter", "Geist Sans", sans-serif;
+    --font-mono: "JetBrains Mono", "Geist Mono", monospace;
+    --font-serif: "Playfair Display", serif;
+
+    --shadow-chat: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+    --shadow-soft: 0 2px 5px rgba(0, 0, 0, 0.05);
+
+    --border-width-3: 3px;
+}
+
+@layer base {
+    body {
+        @apply bg-[#EFE7DD] text-[#111B21] font-sans antialiased overflow-x-hidden selection:bg-[#00A884]/30 selection:text-black;
+    }
+
+    h1, h2, h3 {
+        @apply font-heading uppercase tracking-tight font-black;
+    }
+}
+
+@layer components {
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    /* Custom Modern Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(0, 168, 132, 0.2);
+        border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 168, 132, 0.4);
+    }
+}

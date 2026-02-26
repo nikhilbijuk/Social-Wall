@@ -2,29 +2,28 @@ import * as React from 'react';
 import { memo } from 'react';
 import { cn } from '../../lib/utils';
 import { motion, type HTMLMotionProps } from 'framer-motion';
-
-import { Play } from 'lucide-react';
+import { Play, CheckCircle2 } from 'lucide-react';
+import Image from 'next/image';
 
 interface GlassCardProps extends HTMLMotionProps<"div"> {
-    className?: string; // Explicitly adding to fix TS error
-    style?: React.CSSProperties;
-    variant?: 'default' | 'hover';
+    className?: string;
     label?: string;
     children?: React.ReactNode;
     content?: string;
-    // Unified media props
     fileUrl?: string;
     mediaType?: 'image' | 'video';
-    // Legacy props (optional, for backward compat if needed, but we're migrating)
     imageUrl?: string;
     videoUrl?: string;
     tag?: string;
-    type?: string;
+    variant?: 'default' | 'hover';
+    authorName?: string;
+    is_verified?: number | boolean;
+    timeAgo?: string;
+    edited?: boolean;
 }
 
 const GlassCard: React.FC<GlassCardProps> = ({
     className,
-    variant = 'default',
     label,
     children,
     content,
@@ -33,10 +32,13 @@ const GlassCard: React.FC<GlassCardProps> = ({
     imageUrl,
     videoUrl,
     tag,
-    type,
+    variant = 'default',
+    authorName,
+    is_verified,
+    timeAgo,
+    edited,
     ...props
 }) => {
-    // Resolve effective url and type
     const finalUrl = fileUrl || imageUrl || videoUrl;
     const finalType = mediaType || (videoUrl ? 'video' : 'image');
 
@@ -54,11 +56,8 @@ const GlassCard: React.FC<GlassCardProps> = ({
             if (finalUrl.startsWith('data:')) {
                 setIsProcessing(true);
                 try {
-                    // Fetch is more memory efficient than atob for large strings
-                    // and handles the decoding in the browser's background pool
                     const response = await fetch(finalUrl);
                     const blob = await response.blob();
-
                     if (!isAborted) {
                         activeUrl = URL.createObjectURL(blob);
                         setVideoBlobUrl(activeUrl);
@@ -79,9 +78,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
 
         return () => {
             isAborted = true;
-            if (activeUrl) {
-                URL.revokeObjectURL(activeUrl);
-            }
+            if (activeUrl) URL.revokeObjectURL(activeUrl);
         };
     }, [isPlaying, finalUrl, finalType]);
 
@@ -89,39 +86,43 @@ const GlassCard: React.FC<GlassCardProps> = ({
         <motion.div
             className={cn(
                 'bg-white p-2 rounded-lg shadow-chat border border-transparent relative overflow-hidden text-black',
-                'rounded-tr-lg rounded-tl-lg rounded-br-lg rounded-bl-sm', // Chat bubble shape
+                'rounded-tr-lg rounded-tl-lg rounded-br-lg rounded-bl-sm',
                 className
             )}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
             {...props}
         >
-            {/* Tag/Label (Optional - kept small) */}
-            {(tag || label) && (
-                <div className="mb-1">
-                    <span className="text-[10px] font-bold text-primary uppercase tracking-wide">
-                        {tag || label}
-                    </span>
+            {/* Tag/Label/Author */}
+            {(tag || label || authorName) && (
+                <div className="mb-1 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-[#00A884] uppercase tracking-wide">
+                            {authorName || tag || label}
+                        </span>
+                        {is_verified === 1 && (
+                            <CheckCircle2 size={10} className="text-[#34B7F1] fill-[#34B7F1]/10" />
+                        )}
+                        {edited && (
+                            <span className="text-[8px] text-black/30 font-medium lowercase">
+                                • edited
+                            </span>
+                        )}
+                    </div>
                 </div>
             )}
 
             {/* Content Rendering */}
             <div className="flex flex-col gap-2">
-                {finalUrl && finalType === 'image' && !isPlaying && (
-                    <div
-                        className="w-full rounded-md overflow-hidden bg-gray-100 flex items-center justify-center relative cursor-pointer group"
-                    >
-                        <img
+                {finalUrl && finalType === 'image' && (
+                    <div className="w-full rounded-md overflow-hidden bg-gray-100 flex items-center justify-center relative shadow-sm border border-gray-100 aspect-video">
+                        <Image
                             src={finalUrl}
                             alt="Media"
-                            loading="lazy"
-                            className="w-full h-auto object-contain max-h-[80vh] bg-black/5"
-                            onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = 'https://placehold.co/600x400?text=Image+Unavailable';
-                                target.onerror = null; // Prevent infinite loop
-                            }}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                     </div>
                 )}
@@ -129,25 +130,22 @@ const GlassCard: React.FC<GlassCardProps> = ({
                 {finalUrl && finalType === 'video' && (
                     !isPlaying ? (
                         <div
-                            className="w-full rounded-md overflow-hidden bg-gray-100 flex items-center justify-center relative cursor-pointer group"
+                            className="w-full rounded-md overflow-hidden bg-gray-100 flex items-center justify-center relative cursor-pointer group shadow-sm border border-gray-100 aspect-video"
                             onClick={() => setIsPlaying(true)}
                         >
-                            {/* Video Placeholder/Thumbnail - Generic if no thumbnail gen logic here */}
                             <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors z-10">
                                 <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                                     <Play className="text-black fill-black ml-1" size={24} />
                                 </div>
                             </div>
-                            <video src={finalUrl} className="w-full h-auto max-h-[80vh] object-contain bg-black/5" />
+                            <video src={finalUrl} className="w-full h-full object-cover bg-black/5" />
                         </div>
                     ) : (
-                        <div className="w-full rounded-md overflow-hidden bg-black/5 flex flex-col items-center justify-center relative">
+                        <div className="w-full rounded-md overflow-hidden bg-black/5 flex flex-col items-center justify-center relative aspect-video">
                             {isProcessing ? (
                                 <div className="flex flex-col items-center gap-3 py-8">
-                                    <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
-                                    <p className="text-xs font-medium text-gray-500 animate-pulse">
-                                        Optimizing video for playback...
-                                    </p>
+                                    <div className="w-8 h-8 border-3 border-[#00A884]/30 border-t-[#00A884] rounded-full animate-spin" />
+                                    <p className="text-xs font-medium text-gray-500 animate-pulse uppercase tracking-widest">Processing...</p>
                                 </div>
                             ) : (
                                 <video
@@ -156,29 +154,16 @@ const GlassCard: React.FC<GlassCardProps> = ({
                                     autoPlay
                                     muted
                                     playsInline
-                                    preload="auto"
-                                    className="w-full h-auto max-h-[80vh] rounded-md shadow-sm bg-black"
-                                    onError={(e) => {
-                                        console.error("Video playback error:", e);
-                                        const target = e.target as HTMLVideoElement;
-                                        if (target.error) {
-                                            console.error("Video Error Code:", target.error.code);
-                                            console.error("Video Error Message:", target.error.message);
-                                        }
-                                    }}
+                                    preload="metadata"
+                                    className="w-full h-full rounded-md shadow-sm bg-black"
                                 />
-                            )}
-                            {(finalUrl.startsWith('data:') && finalUrl.length > 2000000 && !isProcessing) && (
-                                <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-black/40 backdrop-blur-sm rounded text-[9px] text-white/90 font-bold tracking-wider uppercase">
-                                    HD
-                                </div>
                             )}
                         </div>
                     )
                 )}
 
                 {content && (
-                    <p className="text-sm leading-relaxed text-dark whitespace-pre-wrap font-sans">
+                    <p className="text-sm leading-relaxed text-[#111B21] whitespace-pre-wrap font-sans">
                         {content}
                     </p>
                 )}
