@@ -6,6 +6,7 @@ import GlassCard from '@/components/ui/GlassCard';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import { Send, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import { useUploadThing } from '@/lib/uploadthing';
+import { cn } from '@/lib/utils';
 
 export default function ExplorePage() {
     const { posts, handleLike, handleThumbUp, isLoading, loadingProgress, hasMore, loadMorePosts, createPost } = useApp();
@@ -23,7 +24,7 @@ export default function ExplorePage() {
     const loadMoreRef = useRef<HTMLDivElement>(null);
 
     const { startUpload } = useUploadThing("mediaUploader", {
-        onUploadProgress: (p) => setUploadProgress(p)
+        onUploadProgress: (p: number) => setUploadProgress(p)
     });
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
