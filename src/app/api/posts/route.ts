@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 
+export const dynamic = 'force-dynamic';
+
 dayjs.extend(relativeTime);
 
 export async function GET(req: Request) {
