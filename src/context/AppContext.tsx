@@ -78,13 +78,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     const handleLike = async (postId: string, currentLikes: number) => {
-        // Optimistic UI could be here
-        // In this premium version, we just call a simple API or action
-        console.log("Like", postId);
+        // Optimistic UI update
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes_count: (p.likes_count || 0) + 1 } : p));
+
+        try {
+            await fetch(`/api/posts/${postId}/like`, { method: 'POST' });
+            fetchLeaderboard(); // Update stats
+        } catch (err) {
+            console.error("Like error:", err);
+            // Rollback if needed
+            setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes_count: currentLikes } : p));
+        }
     };
 
     const handleThumbUp = async (postId: string, currentThumbs: number) => {
-        console.log("Thumb Up", postId);
+        // Optimistic UI update
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, thumbs_up_count: (p.thumbs_up_count || 0) + 1 } : p));
+
+        try {
+            await fetch(`/api/posts/${postId}/thumb`, { method: 'POST' });
+            fetchLeaderboard();
+        } catch (err) {
+            console.error("Thumb error:", err);
+            setPosts(prev => prev.map(p => p.id === postId ? { ...p, thumbs_up_count: currentThumbs } : p));
+        }
     };
 
     return (

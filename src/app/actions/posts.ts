@@ -14,12 +14,13 @@ export async function createPostAction(formData: {
 }) {
     const { content, fileUrl, mediaType, userId, type = 'update', tag = 'Update' } = formData;
 
-    if (!content.trim() && !fileUrl) {
-        throw new Error("Post cannot be empty");
+    // Allow empty text if there is a file, but not empty everything
+    if (!content?.trim() && !fileUrl) {
+        throw new Error("Cannot create an empty post. Please add a message or an image.");
     }
 
-    if (content.includes("http")) {
-        throw new Error("Links are not allowed for security reasons");
+    if (content?.includes("http")) {
+        throw new Error("External links are restricted on the wall.");
     }
 
     try {

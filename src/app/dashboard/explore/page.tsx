@@ -169,7 +169,7 @@ export default function ExplorePage() {
                                 {fileType === 'video' ? (
                                     <video src={previewUrl} className="w-full h-full object-cover" />
                                 ) : (
-                                    <img src={previewUrl} className="w-full h-full object-cover" />
+                                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
                                 )}
                                 {isUploading && (
                                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -210,10 +210,10 @@ export default function ExplorePage() {
                     onClick={handlePost}
                     disabled={isUploading || (!text.trim() && !selectedFile)}
                     className={cn(
-                        "mb-1 p-3 rounded-full transition-all shadow-md",
+                        "mb-1 p-3 rounded-full transition-all shadow-md active:scale-95",
                         isUploading || (!text.trim() && !selectedFile)
-                            ? "bg-gray-300 text-white cursor-not-allowed"
-                            : "bg-[#00A884] hover:bg-[#008f6f] text-white active:scale-95"
+                            ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
+                            : "bg-[#00A884] hover:bg-[#008f6f] text-white"
                     )}
                 >
                     {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} className="ml-0.5" />}

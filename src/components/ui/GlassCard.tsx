@@ -19,6 +19,7 @@ interface GlassCardProps extends HTMLMotionProps<"div"> {
     authorName?: string;
     is_verified?: number | boolean;
     timeAgo?: string;
+    formattedDate?: string;
     edited?: boolean;
 }
 
@@ -36,6 +37,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
     authorName,
     is_verified,
     timeAgo,
+    formattedDate,
     edited,
     ...props
 }) => {
@@ -110,6 +112,18 @@ const GlassCard: React.FC<GlassCardProps> = ({
                             </span>
                         )}
                     </div>
+                    {timeAgo && (
+                        <div className="flex flex-col items-end leading-none">
+                            <span className="text-[9px] text-black/50 font-mono tracking-tighter">
+                                {timeAgo}
+                            </span>
+                            {formattedDate && (
+                                <span className="text-[7px] text-black/30 font-mono uppercase">
+                                    {formattedDate}
+                                </span>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
 
