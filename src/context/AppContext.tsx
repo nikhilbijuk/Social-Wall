@@ -33,14 +33,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const data = await res.json();
 
             setLoadingProgress(80);
-            if (before) {
-                setPosts(prev => [...prev, ...data]);
+            if (Array.isArray(data)) {
+                if (before) {
+                    setPosts(prev => [...prev, ...data]);
+                } else {
+                    setPosts(data);
+                }
+                setHasMore(data.length === 10);
             } else {
-                setPosts(data);
+                console.error("API returned non-array data:", data);
+                if (!before) setPosts([]);
+                setHasMore(false);
             }
-            setHasMore(data.length === 10);
         } catch (err) {
             console.error("Fetch error:", err);
+            if (!before) setPosts([]);
         } finally {
             setIsLoading(false);
             setLoadingProgress(100);
@@ -51,7 +58,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         try {
             const res = await fetch('/api/leaderboard');
             const data = await res.json();
-            setLeaderboard(data);
+            if (data && !data.error) {
+                setLeaderboard(data);
+            }
         } catch (err) {
             console.error("Leaderboard error:", err);
         }
