@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'bb81ol5n6a.ufs.sh',
+        port: '',
+        pathname: '/f/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'grainy-gradients.vercel.app',
         port: '',
         pathname: '/**',

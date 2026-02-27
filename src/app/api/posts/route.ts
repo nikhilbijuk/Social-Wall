@@ -32,7 +32,7 @@ export async function GET(req: Request) {
 
         const posts = result.rows.map(row => ({
             ...row,
-            createdAt: row.created_at + "Z", // Append Z to enforce UTC parsing on the client
+            createdAt: typeof row.created_at === 'string' ? row.created_at.replace(" ", "T") + "Z" : row.created_at,
             timestamp: row.timestamp,
             fileUrl: row.file_url,
             mediaType: row.media_type,
