@@ -136,13 +136,13 @@ const GlassCard: React.FC<GlassCardProps> = ({
             <div className="flex flex-col gap-2">
                 {finalUrl && finalType === 'image' && (
                     <div
-                        className="w-full flex justify-center relative cursor-pointer"
+                        className="w-full rounded-md overflow-hidden bg-black/5 flex items-center justify-center relative cursor-pointer border border-gray-100/50 shadow-sm"
                         onClick={() => setIsFullscreen(true)}
                     >
                         <img
                             src={finalUrl}
                             alt="Media"
-                            className="max-w-full max-h-[70vh] rounded-md shadow-sm border border-gray-100 object-contain bg-black/5"
+                            className="max-w-full max-h-[70vh] object-contain"
                             loading="eager"
                         />
                     </div>
@@ -151,18 +151,18 @@ const GlassCard: React.FC<GlassCardProps> = ({
                 {finalUrl && finalType === 'video' && (
                     !isPlaying ? (
                         <div
-                            className="w-full flex items-center justify-center relative cursor-pointer group"
+                            className="w-full rounded-md overflow-hidden bg-black/5 flex items-center justify-center relative cursor-pointer group border border-gray-100/50 shadow-sm"
                             onClick={() => { setIsPlaying(true); setIsFullscreen(true); }}
                         >
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 rounded-md transition-colors z-10">
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors z-10">
                                 <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                                     <Play className="text-black fill-black ml-1" size={24} />
                                 </div>
                             </div>
-                            <video src={finalUrl} className="max-w-full max-h-[70vh] rounded-md shadow-sm border border-gray-100 object-contain bg-black/5" />
+                            <video src={finalUrl} className="max-w-full max-h-[70vh] object-contain" />
                         </div>
                     ) : (
-                        <div className="w-full flex flex-col items-center justify-center relative">
+                        <div className="w-full rounded-md overflow-hidden bg-black/5 flex flex-col items-center justify-center relative border border-gray-100/50 shadow-sm">
                             {isProcessing ? (
                                 <div className="flex flex-col items-center gap-3 py-8">
                                     <div className="w-8 h-8 border-3 border-[#00A884]/30 border-t-[#00A884] rounded-full animate-spin" />
@@ -176,7 +176,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
                                     muted
                                     playsInline
                                     preload="metadata"
-                                    className="max-w-full max-h-[70vh] rounded-md shadow-sm border border-gray-100 object-contain bg-black/5"
+                                    className="max-w-full max-h-[70vh] object-contain"
                                 />
                             )}
                         </div>
