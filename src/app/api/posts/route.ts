@@ -14,7 +14,7 @@ export async function GET(req: Request) {
         const before = searchParams.get("before");
 
         let query = `
-            SELECT p.*, u.name as authorName, u.is_verified, datetime(p.created_at, 'localtime') as formatted_date 
+            SELECT p.*, u.name as authorName, u.is_verified, p.created_at as formatted_date 
             FROM posts p 
             LEFT JOIN users u ON p.user_id = u.id
         `;

@@ -3,16 +3,10 @@ import { auth } from "@/auth";
 export default auth((req) => {
     const isLoggedIn = !!req.auth;
     const isDashboardRoute = req.nextUrl.pathname.startsWith('/dashboard');
-    const isExploreRoute = req.nextUrl.pathname === '/dashboard/explore';
 
-    // Redirect to login page ONLY if trying to access dashboard routes (except explore) while not logged in
-    if (isDashboardRoute && !isExploreRoute && !isLoggedIn) {
+    // Redirect to login page ONLY if trying to access dashboard routes while not logged in
+    if (isDashboardRoute && !isLoggedIn) {
         return Response.redirect(new URL('/', req.nextUrl));
-    }
-
-    // Redirect to dashboard if logged in and trying to access root
-    if (req.nextUrl.pathname === '/' && isLoggedIn) {
-        return Response.redirect(new URL('/dashboard/explore', req.nextUrl));
     }
 });
 
