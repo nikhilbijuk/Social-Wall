@@ -32,8 +32,10 @@ export async function GET(req: Request) {
 
         const posts = result.rows.map(row => ({
             ...row,
-            createdAt: row.created_at,
+            createdAt: row.created_at + "Z", // Append Z to enforce UTC parsing on the client
             timestamp: row.timestamp,
+            fileUrl: row.file_url,
+            mediaType: row.media_type,
         }));
 
         return NextResponse.json(posts);

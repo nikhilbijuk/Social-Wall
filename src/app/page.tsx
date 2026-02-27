@@ -56,7 +56,7 @@ export default function RootPage() {
       if (selectedFile) {
         const res = await startUpload([selectedFile]);
         if (res && res[0]) {
-          fileUrl = res[0].url;
+          fileUrl = res[0].ufsUrl || res[0].url;
           mediaType = fileType as 'image' | 'video';
         } else {
           throw new Error("Media upload failed. Please check your connection or try a smaller file.");
