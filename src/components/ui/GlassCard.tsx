@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { memo } from 'react';
+import { memo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import { motion, type HTMLMotionProps } from 'framer-motion';
-import { Play, CheckCircle2 } from 'lucide-react';
+import { Play, CheckCircle2, X } from 'lucide-react';
 import Image from 'next/image';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -48,11 +49,12 @@ const GlassCard: React.FC<GlassCardProps> = ({
     const finalUrl = fileUrl || imageUrl || videoUrl;
     const finalType = mediaType || (videoUrl ? 'video' : 'image');
 
-    const [isPlaying, setIsPlaying] = React.useState(false);
-    const [videoBlobUrl, setVideoBlobUrl] = React.useState<string | null>(null);
-    const [isProcessing, setIsProcessing] = React.useState(false);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [videoBlobUrl, setVideoBlobUrl] = useState<string | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
-    React.useEffect(() => {
+    useEffect(() => {
         let activeUrl: string | null = null;
         let isAborted = false;
 
@@ -133,14 +135,15 @@ const GlassCard: React.FC<GlassCardProps> = ({
             {/* Content Rendering */}
             <div className="flex flex-col gap-2">
                 {finalUrl && finalType === 'image' && (
-                    <div className="w-full rounded-md overflow-hidden bg-gray-100 flex items-center justify-center relative shadow-sm border border-gray-100 aspect-video">
-                        <Image
+                    <div
+                        className="w-full flex justify-center relative cursor-pointer"
+                        onClick={() => setIsFullscreen(true)}
+                    >
+                        <img
                             src={finalUrl}
                             alt="Media"
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            priority={true}
+                            className="max-w-full max-h-[70vh] rounded-md shadow-sm border border-gray-100 object-contain bg-black/5"
+                            loading="eager"
                         />
                     </div>
                 )}
@@ -148,18 +151,18 @@ const GlassCard: React.FC<GlassCardProps> = ({
                 {finalUrl && finalType === 'video' && (
                     !isPlaying ? (
                         <div
-                            className="w-full rounded-md overflow-hidden bg-gray-100 flex items-center justify-center relative cursor-pointer group shadow-sm border border-gray-100 aspect-video"
-                            onClick={() => setIsPlaying(true)}
+                            className="w-full flex items-center justify-center relative cursor-pointer group"
+                            onClick={() => { setIsPlaying(true); setIsFullscreen(true); }}
                         >
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors z-10">
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 rounded-md transition-colors z-10">
                                 <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                                     <Play className="text-black fill-black ml-1" size={24} />
                                 </div>
                             </div>
-                            <video src={finalUrl} className="w-full h-full object-cover bg-black/5" />
+                            <video src={finalUrl} className="max-w-full max-h-[70vh] rounded-md shadow-sm border border-gray-100 object-contain bg-black/5" />
                         </div>
                     ) : (
-                        <div className="w-full rounded-md overflow-hidden bg-black/5 flex flex-col items-center justify-center relative aspect-video">
+                        <div className="w-full flex flex-col items-center justify-center relative">
                             {isProcessing ? (
                                 <div className="flex flex-col items-center gap-3 py-8">
                                     <div className="w-8 h-8 border-3 border-[#00A884]/30 border-t-[#00A884] rounded-full animate-spin" />
@@ -173,7 +176,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
                                     muted
                                     playsInline
                                     preload="metadata"
-                                    className="w-full h-full rounded-md shadow-sm bg-black"
+                                    className="max-w-full max-h-[70vh] rounded-md shadow-sm border border-gray-100 object-contain bg-black/5"
                                 />
                             )}
                         </div>
@@ -188,6 +191,43 @@ const GlassCard: React.FC<GlassCardProps> = ({
 
                 {children}
             </div>
+
+            {/* Fullscreen Lightbox Portal */}
+            {isFullscreen && typeof window !== 'undefined' && createPortal(
+                <div
+                    className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-sm"
+                    onClick={() => setIsFullscreen(false)}
+                >
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setIsFullscreen(false); }}
+                        className="absolute top-4 right-4 md:top-6 md:right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all duration-200 z-[110]"
+                    >
+                        <X size={24} />
+                    </button>
+
+                    <div
+                        className="relative w-full h-full flex items-center justify-center"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {finalType === 'image' ? (
+                            <img
+                                src={finalUrl}
+                                alt="Fullscreen Media"
+                                className="max-w-full max-h-full object-contain rounded-md shadow-2xl"
+                            />
+                        ) : (
+                            <video
+                                src={videoBlobUrl || finalUrl}
+                                controls
+                                autoPlay
+                                playsInline
+                                className="max-w-full max-h-[85vh] rounded-md shadow-2xl bg-black"
+                            />
+                        )}
+                    </div>
+                </div>,
+                document.body
+            )}
         </motion.div>
     );
 };
