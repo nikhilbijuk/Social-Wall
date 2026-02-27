@@ -32,8 +32,8 @@ export async function GET(req: Request) {
 
         const posts = result.rows.map(row => ({
             ...row,
-            timeAgo: row.created_at ? dayjs(row.created_at as string).fromNow() : dayjs(Number(row.timestamp)).fromNow(),
-            formattedDate: row.created_at ? dayjs(row.created_at as string).format('ddd hh:mm A') : dayjs(Number(row.timestamp)).format('ddd hh:mm A'),
+            createdAt: row.created_at,
+            timestamp: row.timestamp,
         }));
 
         return NextResponse.json(posts);

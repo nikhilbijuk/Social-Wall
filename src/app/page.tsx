@@ -118,10 +118,7 @@ export default function RootPage() {
         {posts.map((post) => (
           <div key={post.id} className="flex flex-col gap-1 max-w-[90%] md:max-w-[75%] ml-0 mr-auto">
             <GlassCard {...post} />
-            <div className="flex items-center justify-between w-full px-1">
-              <span className="text-[10px] text-gray-500 font-medium font-mono">
-                {post.timeAgo}
-              </span>
+            <div className="flex items-center justify-end w-full px-1">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => handleLike(post.id, post.likes_count)}

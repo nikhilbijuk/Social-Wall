@@ -4,6 +4,10 @@ import { cn } from '../../lib/utils';
 import { motion, type HTMLMotionProps } from 'framer-motion';
 import { Play, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 interface GlassCardProps extends HTMLMotionProps<"div"> {
     className?: string;
@@ -18,8 +22,8 @@ interface GlassCardProps extends HTMLMotionProps<"div"> {
     variant?: 'default' | 'hover';
     authorName?: string;
     is_verified?: number | boolean;
-    timeAgo?: string;
-    formattedDate?: string;
+    createdAt?: string;
+    timestamp?: number;
     edited?: boolean;
 }
 
@@ -36,8 +40,8 @@ const GlassCard: React.FC<GlassCardProps> = ({
     variant = 'default',
     authorName,
     is_verified,
-    timeAgo,
-    formattedDate,
+    createdAt,
+    timestamp,
     edited,
     ...props
 }) => {
@@ -112,16 +116,14 @@ const GlassCard: React.FC<GlassCardProps> = ({
                             </span>
                         )}
                     </div>
-                    {timeAgo && (
+                    {(createdAt || timestamp) && (
                         <div className="flex flex-col items-end leading-none">
                             <span className="text-[9px] text-black/50 font-mono tracking-tighter">
-                                {timeAgo}
+                                {createdAt ? dayjs(createdAt).fromNow() : dayjs(Number(timestamp)).fromNow()}
                             </span>
-                            {formattedDate && (
-                                <span className="text-[7px] text-black/30 font-mono uppercase">
-                                    {formattedDate}
-                                </span>
-                            )}
+                            <span className="text-[7px] text-black/30 font-mono uppercase">
+                                {createdAt ? dayjs(createdAt).format('ddd hh:mm A') : dayjs(Number(timestamp)).format('ddd hh:mm A')}
+                            </span>
                         </div>
                     )}
                 </div>
