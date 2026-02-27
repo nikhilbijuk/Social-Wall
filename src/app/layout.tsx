@@ -31,12 +31,12 @@ export default function RootLayout({
                 <AppProvider>
                     <header className="fixed top-0 left-0 right-0 h-16 bg-[#EFE7DD] flex items-center justify-between px-6 z-50 border-b border-[#111B21]/5 backdrop-blur-md">
                         <div className="flex items-center gap-3">
-                            <h1 className="text-xl font-black tracking-tighter uppercase">Social Wall</h1>
-                            <div className="h-4 w-px bg-black/10 mx-1" />
-                            <span className="text-[10px] font-bold text-[#00A884] uppercase tracking-widest animate-pulse">Live Connectivity</span>
+                            <h1 className="text-xl font-black tracking-tighter uppercase whitespace-nowrap overflow-hidden text-ellipsis">Social Wall</h1>
+                            <div className="h-4 w-px bg-black/10 mx-1 shrink-0" />
+                            <span className="text-[10px] font-bold text-[#00A884] uppercase tracking-widest animate-pulse shrink-0">Live Connectivity</span>
                         </div>
                     </header>
-                    <main className="pt-16 min-h-screen bg-[#EFE7DD]">
+                    <main className="pt-16 min-h-[100dvh] bg-[#EFE7DD]">
                         {children}
                     </main>
                 </AppProvider>

@@ -99,7 +99,7 @@ export default function RootPage() {
   }, [hasMore, isLoading, loadMorePosts]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] relative">
+    <div className="flex flex-col h-[calc(100dvh-64px)] relative">
       <LoadingOverlay isLoading={isLoading && posts.length === 0} progress={loadingProgress} />
 
       {/* Background Pattern Overlay */}
