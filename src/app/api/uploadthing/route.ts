@@ -17,4 +17,8 @@ export type OurFileRouter = typeof fileRouter;
 
 export const { GET, POST } = createRouteHandler({
     router: fileRouter,
+    config: {
+        uploadthingSecret: process.env.UPLOADTHING_SECRET,
+        uploadthingId: process.env.UPLOADTHING_APP_ID,
+    },
 });

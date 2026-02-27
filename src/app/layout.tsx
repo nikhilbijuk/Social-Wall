@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     title: "Social Wall | Visual Coordination Stream",
     description: "The premium real-time communication layer for high-performance teams.",
     icons: {
-        icon: "/favicon.ico",
+        icon: "/favicon.svg",
     },
 };
 
@@ -23,7 +23,7 @@ export default function RootLayout({
     return (
         <html lang="en">
             <head>
-                <link rel="icon" href="/favicon.ico" sizes="any" />
+                <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
             </head>
             <body className={`${inter.variable} font-sans antialiased`}>
                 {children}

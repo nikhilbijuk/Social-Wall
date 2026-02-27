@@ -58,6 +58,9 @@ export default function ExplorePage() {
                 if (res && res[0]) {
                     fileUrl = res[0].url;
                     mediaType = fileType as 'image' | 'video';
+                } else {
+                    // If upload was attempted but failed to return a URL
+                    throw new Error("Media upload failed. Please check your connection or try a smaller file.");
                 }
             }
 
@@ -69,9 +72,10 @@ export default function ExplorePage() {
 
             setText('');
             clearAttachment();
-        } catch (err) {
+        } catch (err: any) {
             console.error("Failed to post:", err);
-            alert("Failed to create post. Please try again.");
+            // Show the specific error message if available
+            alert(err.message || "Failed to create post. Please try again.");
         } finally {
             setIsUploading(false);
             setUploadProgress(0);
