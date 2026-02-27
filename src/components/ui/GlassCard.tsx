@@ -117,11 +117,12 @@ const GlassCard: React.FC<GlassCardProps> = ({
                         )}
                     </div>
                     {(createdAt || timestamp) && (
-                        <div className="flex flex-col items-end leading-none">
-                            <span className="text-[9px] text-black/50 font-mono tracking-tighter">
+                        <div className="flex items-center gap-1.5 opacity-70">
+                            <span className="text-[10px] text-gray-500 font-mono tracking-tight font-medium">
                                 {createdAt ? dayjs(createdAt).fromNow() : dayjs(Number(timestamp)).fromNow()}
                             </span>
-                            <span className="text-[7px] text-black/30 font-mono uppercase">
+                            <span className="text-gray-300 text-[10px]">•</span>
+                            <span className="text-[9px] text-gray-400 font-mono uppercase tracking-widest">
                                 {createdAt ? dayjs(createdAt).format('ddd hh:mm A') : dayjs(Number(timestamp)).format('ddd hh:mm A')}
                             </span>
                         </div>
