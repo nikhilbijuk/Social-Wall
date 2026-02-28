@@ -61,6 +61,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
         const createBlob = async () => {
             if (!isPlaying || !finalUrl || finalType !== 'video') return;
 
+            // Only attempt blob wrapping for local Data URIs (previews)
             if (finalUrl.startsWith('data:')) {
                 setIsProcessing(true);
                 try {
@@ -78,7 +79,9 @@ const GlassCard: React.FC<GlassCardProps> = ({
                     }
                 }
             } else {
+                // If it's an external URL (UploadThing), skip blob creation entirely to avoid CORS issues
                 setIsProcessing(false);
+                setVideoBlobUrl(null);
             }
         };
 
@@ -159,7 +162,13 @@ const GlassCard: React.FC<GlassCardProps> = ({
                                     <Play className="text-black fill-black ml-1" size={24} />
                                 </div>
                             </div>
-                            <video src={finalUrl} className="max-w-full max-h-[70vh] object-contain" />
+                            <video
+                                src={finalUrl}
+                                className="max-w-full max-h-[70vh] object-contain"
+                                playsInline
+                                muted
+                                preload="metadata"
+                            />
                         </div>
                     ) : (
                         <div className="w-full rounded-md overflow-hidden bg-black/5 flex flex-col items-center justify-center relative border border-gray-100/50 shadow-sm">
@@ -219,8 +228,8 @@ const GlassCard: React.FC<GlassCardProps> = ({
                             <video
                                 src={videoBlobUrl || finalUrl}
                                 controls
-                                autoPlay
                                 playsInline
+                                autoPlay
                                 className="max-w-full max-h-[85vh] rounded-md shadow-2xl bg-black"
                             />
                         )}
