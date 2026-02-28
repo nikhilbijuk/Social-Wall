@@ -5,7 +5,7 @@ const f = createUploadthing();
 
 export const fileRouter = {
     mediaUploader: f({
-        image: { maxFileSize: "4MB", maxFileCount: 1 },
+        image: { maxFileSize: "8MB", maxFileCount: 1 },
         // Free tier maximum is 32MB for video! Overriding this to 64MB breaks the entire endpoint.
         video: { maxFileSize: "32MB", maxFileCount: 1 },
     }).onUploadComplete(async ({ file }) => {
