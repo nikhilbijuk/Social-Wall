@@ -24,7 +24,10 @@ export default function RootPage() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const { startUpload } = useUploadThing("mediaUploader", {
-    onUploadProgress: (p: number) => setUploadProgress(p)
+    onUploadProgress: (p: number) => setUploadProgress(p),
+    onUploadError: (e: any) => {
+      alert(`Upload API Error: ${e.message}`);
+    }
   });
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
