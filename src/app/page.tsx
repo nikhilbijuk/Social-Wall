@@ -211,7 +211,6 @@ export default function RootPage() {
             placeholder="Type a message..."
             value={text}
             onChange={(e) => setText(e.target.value)}
-            disabled={isUploading}
             className="w-full p-2.5 px-4 text-sm resize-none focus:outline-none bg-transparent min-h-[44px] max-h-[120px] scrollbar-hide"
             rows={1}
             onInput={(e) => {
