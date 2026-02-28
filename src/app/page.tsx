@@ -4,12 +4,14 @@ import { useState, useRef, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import GlassCard from '@/components/ui/GlassCard';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
+import NameModal from '@/components/ui/NameModal';
 import { Send, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import { useUploadThing } from '@/lib/uploadthing';
 import { cn } from '@/lib/utils';
 
 export default function RootPage() {
-  const { posts, handleLike, handleThumbUp, isLoading, loadingProgress, hasMore, loadMorePosts, createPost } = useApp();
+  const { posts, handleLike, handleThumbUp, isLoading, loadingProgress, hasMore, loadMorePosts, createPost,
+    anonId, userName, setUserName, showNameModal, setShowNameModal, pendingPost, setPendingPost } = useApp();
   const [text, setText] = useState('');
 
   // File States
@@ -144,9 +146,32 @@ export default function RootPage() {
     }
   }, [uploadProgress, selectedFile]);
 
+  // After name is claimed, auto-retry the pending post
+  useEffect(() => {
+    if (userName && pendingPost) {
+      createPost(pendingPost).then(() => {
+        setText('');
+        clearAttachment();
+      }).finally(() => setPendingPost(null));
+    }
+    // Only trigger when userName first becomes available
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userName]);
+
   return (
     <div className="flex flex-col h-[calc(100dvh-64px)] relative">
       <LoadingOverlay isLoading={isLoading && posts.length === 0} progress={loadingProgress} />
+
+      {/* Name Registration Modal */}
+      {showNameModal && anonId && (
+        <NameModal
+          anonId={anonId}
+          onSuccess={(name) => {
+            setUserName(name);
+            setShowNameModal(false);
+          }}
+        />
+      )}
 
       {/* Background Pattern Overlay */}
       <div className="absolute inset-0 opacity-[0.06] pointer-events-none"

@@ -13,6 +13,13 @@ interface AppContextType {
     handleLike: (postId: string, currentLikes: number) => Promise<void>;
     handleThumbUp: (postId: string, currentThumbs: number) => Promise<void>;
     leaderboard: any;
+    anonId: string | null;
+    userName: string | null;
+    setUserName: (name: string) => void;
+    showNameModal: boolean;
+    setShowNameModal: (v: boolean) => void;
+    pendingPost: any | null;
+    setPendingPost: (data: any | null) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -23,6 +30,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const [leaderboard, setLeaderboard] = useState<any>(null);
+    const [anonId, setAnonId] = useState<string | null>(null);
+    const [userName, setUserNameState] = useState<string | null>(null);
+    const [showNameModal, setShowNameModal] = useState(false);
+    const [pendingPost, setPendingPost] = useState<any | null>(null);
+
+    // Initialize anonymous ID and username from localStorage
+    useEffect(() => {
+        let id = localStorage.getItem('anonId');
+        if (!id) {
+            id = crypto.randomUUID();
+            localStorage.setItem('anonId', id);
+        }
+        setAnonId(id);
+
+        const savedName = localStorage.getItem('userName');
+        if (savedName) setUserNameState(savedName);
+    }, []);
+
+    const setUserName = (name: string) => {
+        setUserNameState(name);
+        localStorage.setItem('userName', name);
+    };
 
     const fetchPosts = useCallback(async (before?: number) => {
         setIsLoading(true);
@@ -80,9 +109,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     const createPost = async (data: any) => {
-        // In a real app, we'd get the userId from the session
-        const res = await createPostAction({ ...data, userId: 'anonymous' });
-        fetchPosts(); // Refresh feed
+        if (!userName) {
+            // Save the post data and show name modal
+            setPendingPost(data);
+            setShowNameModal(true);
+            return;
+        }
+        const res = await createPostAction({ ...data, userId: anonId || 'anonymous' });
+        fetchPosts();
         return res;
     };
 
@@ -116,7 +150,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return (
         <AppContext.Provider value={{
             posts, isLoading, loadingProgress, hasMore, loadMorePosts,
-            createPost, handleLike, handleThumbUp, leaderboard
+            createPost, handleLike, handleThumbUp, leaderboard,
+            anonId, userName, setUserName, showNameModal, setShowNameModal,
+            pendingPost, setPendingPost,
         }}>
             {children}
         </AppContext.Provider>
