@@ -16,6 +16,7 @@ export default function RootPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'image' | 'video' | null>(null);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -30,46 +31,60 @@ export default function RootPage() {
     }
   });
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setSelectedFile(file);
-    setFileType(file.type.startsWith('video/') ? 'video' : 'image');
+    const mType = file.type.startsWith('video/') ? 'video' : 'image';
+    setFileType(mType);
 
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
+
+    // Start background upload immediately
+    setIsUploading(true);
+    try {
+      const res = await startUpload([file]);
+      if (res && res[0]) {
+        setUploadedFileUrl(res[0].ufsUrl || res[0].url);
+      } else {
+        throw new Error("Media upload failed. Please check your connection or try a smaller file.");
+      }
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      alert(err.message || "Failed to upload file. Please try again.");
+      clearAttachment();
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   const clearAttachment = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
     setFileType(null);
+    setUploadedFileUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handlePost = async () => {
-    if (!text.trim() && !selectedFile) return;
+    if (!text.trim() && !uploadedFileUrl) return;
 
-    setIsUploading(true);
-    let fileUrl = '';
-    let mediaType: 'image' | 'video' | undefined = undefined;
+    // Optional: block if upload is still running
+    if (isUploading) {
+      alert("Please wait for the media to finish uploading.");
+      return;
+    }
+
+    setIsUploading(true); // Re-use spinner for post submission
 
     try {
-      if (selectedFile) {
-        const res = await startUpload([selectedFile]);
-        if (res && res[0]) {
-          fileUrl = res[0].ufsUrl || res[0].url;
-          mediaType = fileType as 'image' | 'video';
-        } else {
-          throw new Error("Media upload failed. Please check your connection or try a smaller file.");
-        }
-      }
-
       await createPost({
         content: text,
-        fileUrl,
-        mediaType,
+        fileUrl: uploadedFileUrl || undefined,
+        mediaType: uploadedFileUrl ? fileType : undefined,
       });
 
       setText('');
@@ -79,7 +94,6 @@ export default function RootPage() {
       alert(err.message || "Failed to create post. Please try again.");
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
     }
   };
 
@@ -216,10 +230,10 @@ export default function RootPage() {
 
         <button
           onClick={handlePost}
-          disabled={isUploading || (!text.trim() && !selectedFile)}
+          disabled={isUploading || (!text.trim() && !uploadedFileUrl)}
           className={cn(
             "mb-1 p-3 rounded-full transition-all shadow-md active:scale-95",
-            isUploading || (!text.trim() && !selectedFile)
+            isUploading || (!text.trim() && !uploadedFileUrl)
               ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
               : "bg-[#00A884] hover:bg-[#008f6f] text-white"
           )}
