@@ -157,18 +157,20 @@ const GlassCard: React.FC<GlassCardProps> = ({
                             className="w-full rounded-md overflow-hidden bg-black/5 flex items-center justify-center relative cursor-pointer group border border-gray-100/50 shadow-sm"
                             onClick={() => { setIsPlaying(true); setIsFullscreen(true); }}
                         >
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors z-10">
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors z-10 pointer-events-none">
                                 <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                                     <Play className="text-black fill-black ml-1" size={24} />
                                 </div>
                             </div>
                             <video
                                 src={finalUrl}
-                                className="max-w-full max-h-[70vh] object-contain"
+                                className="max-w-full max-h-[70vh] object-contain pointer-events-none"
                                 playsInline
                                 muted
                                 preload="metadata"
                             />
+                            {/* Explicit overlay for mobile touch capture */}
+                            <div className="absolute inset-0 z-20" />
                         </div>
                     ) : (
                         <div className="w-full rounded-md overflow-hidden bg-black/5 flex flex-col items-center justify-center relative border border-gray-100/50 shadow-sm">
