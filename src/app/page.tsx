@@ -20,6 +20,8 @@ export default function RootPage() {
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadSpeed, setUploadSpeed] = useState<string>('');
+  const lastProgressRef = useRef<{ time: number, percent: number }>({ time: Date.now(), percent: 0 });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -58,6 +60,7 @@ export default function RootPage() {
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
+      setUploadSpeed('');
     }
   };
 
@@ -67,6 +70,7 @@ export default function RootPage() {
     setFileType(null);
     setUploadedFileUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+    setUploadSpeed('');
   };
 
   const handlePost = async () => {
@@ -114,6 +118,31 @@ export default function RootPage() {
 
     return () => observer.disconnect();
   }, [hasMore, isLoading, loadMorePosts]);
+
+  // Upload Speed Calculation
+  useEffect(() => {
+    if (uploadProgress === 0) {
+      lastProgressRef.current = { time: Date.now(), percent: 0 };
+    } else if (uploadProgress > 0 && uploadProgress < 100 && selectedFile) {
+      const now = Date.now();
+      const timeDiff = (now - lastProgressRef.current.time) / 1000;
+
+      // Update speed at most every 500ms for stable display
+      if (timeDiff >= 0.5) {
+        const percentDiff = uploadProgress - lastProgressRef.current.percent;
+        if (percentDiff > 0) {
+          const totalSizeMB = selectedFile.size / (1024 * 1024);
+          const mbDiff = (percentDiff / 100) * totalSizeMB;
+          const speedMBps = mbDiff / timeDiff;
+
+          setUploadSpeed(`${speedMBps.toFixed(1)} MB/s`);
+        }
+        lastProgressRef.current = { time: now, percent: uploadProgress };
+      }
+    } else if (uploadProgress === 100) {
+      setUploadSpeed('Finishing...');
+    }
+  }, [uploadProgress, selectedFile]);
 
   return (
     <div className="flex flex-col h-[calc(100dvh-64px)] relative">
@@ -194,8 +223,9 @@ export default function RootPage() {
                   <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
                 )}
                 {isUploading && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <span className="text-[10px] text-white font-bold">{uploadProgress}%</span>
+                  <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center backdrop-blur-[2px]">
+                    <span className="text-[11px] text-white font-black tracking-wider">{uploadProgress}%</span>
+                    {uploadSpeed && <span className="text-[8px] text-white/80 font-bold uppercase tracking-widest mt-0.5">{uploadSpeed}</span>}
                   </div>
                 )}
               </div>
