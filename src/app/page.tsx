@@ -179,7 +179,7 @@ export default function RootPage() {
       </div>
 
       {/* Feed Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 relative z-10 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 relative z-10 custom-scrollbar">
         {posts.length === 0 && !isLoading && (
           <div className="flex flex-col items-center justify-center h-full opacity-20 select-none pointer-events-none">
             <h2 className="text-4xl font-black tracking-tighter uppercase grayscale">Wall_Is_Empty</h2>
