@@ -157,22 +157,56 @@ export default function RootPage() {
     }
   };
 
+  const isInitialLoad = useRef(true);
+  const scrollPosRef = useRef<number>(0);
+  const scrollHeightRef = useRef<number>(0);
+
   // Initial scroll to bottom when posts load
   useEffect(() => {
-    if (posts.length > 0 && !isLoading) {
-      // Delay slightly to ensure layout is ready
-      const timer = setTimeout(() => scrollToBottom('auto'), 100);
+    if (posts.length > 0 && !isLoading && isInitialLoad.current) {
+      const timer = setTimeout(() => {
+        scrollToBottom('auto');
+        isInitialLoad.current = false;
+      }, 100);
       return () => clearTimeout(timer);
     }
-  }, [posts.length > 0, isLoading]);
+  }, [posts.length, isLoading]);
 
-  // Scroll to bottom on NEW messages
+  // Capture scroll state BEFORE history load
+  useEffect(() => {
+    if (isLoading && feedContainerRef.current) {
+      scrollHeightRef.current = feedContainerRef.current.scrollHeight;
+      scrollPosRef.current = feedContainerRef.current.scrollTop;
+    }
+  }, [isLoading]);
+
+  // Adjust scroll AFTER history load to prevent jump
+  useEffect(() => {
+    if (!isLoading && !isInitialLoad.current && feedContainerRef.current && scrollHeightRef.current > 0) {
+      const newScrollHeight = feedContainerRef.current.scrollHeight;
+      const heightDiff = newScrollHeight - scrollHeightRef.current;
+      
+      // If we prepended items (height increased), adjust scrollTop to stay on the same item
+      if (heightDiff > 0) {
+        feedContainerRef.current.scrollTop = scrollPosRef.current + heightDiff;
+      }
+      
+      // Reset markers
+      scrollHeightRef.current = 0;
+    }
+  }, [isLoading, posts.length]);
+
+  // Scroll to bottom ONLY on truly NEW messages (appended to end)
   const lastPostIdRef = useRef<string | null>(null);
   useEffect(() => {
     const lastPost = posts[posts.length - 1];
     if (lastPost && lastPost.id !== lastPostIdRef.current) {
+      const isNewMessage = lastPostIdRef.current !== null;
       lastPostIdRef.current = lastPost.id;
-      scrollToBottom('smooth');
+      
+      if (isNewMessage) {
+        scrollToBottom('smooth');
+      }
     }
   }, [posts]);
 
