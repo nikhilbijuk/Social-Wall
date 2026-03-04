@@ -11,22 +11,19 @@ export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
         const limit = parseInt(searchParams.get("limit") || "10");
-        const before = searchParams.get("before");
+        const after = searchParams.get("after");
 
         let query = `
-            SELECT p.*, u.name as authorName, u.is_verified, p.created_at as formatted_date 
-            FROM posts p 
-            LEFT JOIN users u ON p.user_id = u.id
+            SELECT * FROM (
+                SELECT p.*, u.name as authorName, u.is_verified, p.created_at as formatted_date 
+                FROM posts p 
+                LEFT JOIN users u ON p.user_id = u.id
+                ${after ? 'WHERE p.timestamp > ?' : ''}
+                ORDER BY p.timestamp DESC 
+                LIMIT ?
+            ) ORDER BY timestamp ASC
         `;
-        let args: any[] = [];
-
-        if (before) {
-            query += " WHERE p.timestamp < ? ORDER BY p.timestamp DESC LIMIT ?";
-            args = [parseInt(before), limit];
-        } else {
-            query += " ORDER BY p.timestamp DESC LIMIT ?";
-            args = [limit];
-        }
+        let args: any[] = after ? [parseInt(after), limit] : [limit];
 
         const result = await db.execute({ sql: query, args });
 

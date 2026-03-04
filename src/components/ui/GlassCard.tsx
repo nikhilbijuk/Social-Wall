@@ -3,10 +3,12 @@ import { memo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import { motion, type HTMLMotionProps } from 'framer-motion';
-import { Play, CheckCircle2, X } from 'lucide-react';
+import { Play, CheckCircle2, X, Lock } from 'lucide-react';
 import Image from 'next/image';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { useApp } from '@/context/AppContext';
+import { shouldBlur } from '@/lib/permissions';
 
 dayjs.extend(relativeTime);
 
@@ -16,6 +18,7 @@ interface GlassCardProps extends HTMLMotionProps<"div"> {
     children?: React.ReactNode;
     content?: string;
     fileUrl?: string;
+    authorId?: string;
     mediaType?: 'image' | 'video';
     imageUrl?: string;
     videoUrl?: string;
@@ -23,6 +26,9 @@ interface GlassCardProps extends HTMLMotionProps<"div"> {
     variant?: 'default' | 'hover';
     authorName?: string;
     is_verified?: number | boolean;
+    is_deepfake?: number;
+    is_blur?: number;
+    blur_reason?: string;
     createdAt?: string;
     timestamp?: number;
     edited?: boolean;
@@ -34,6 +40,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
     children,
     content,
     fileUrl,
+    authorId,
     mediaType,
     imageUrl,
     videoUrl,
@@ -41,11 +48,14 @@ const GlassCard: React.FC<GlassCardProps> = ({
     variant = 'default',
     authorName,
     is_verified,
+    is_deepfake,
+    is_blur,
     createdAt,
     timestamp,
     edited,
     ...props
 }) => {
+    const { userProfile } = useApp();
     const finalUrl = fileUrl || imageUrl || videoUrl;
     const finalType = mediaType || (videoUrl ? 'video' : 'image');
 
@@ -54,12 +64,16 @@ const GlassCard: React.FC<GlassCardProps> = ({
     const [isProcessing, setIsProcessing] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
+    const isMe = userProfile?.id && (authorId === userProfile.id);
+    const blurred = shouldBlur({ is_blur }, userProfile);
+
     useEffect(() => {
         let activeUrl: string | null = null;
         let isAborted = false;
 
         const createBlob = async () => {
             if (!isPlaying || !finalUrl || finalType !== 'video') return;
+            if (blurred) return; // Don't fetch if blurred
 
             // Only attempt blob wrapping for local Data URIs (previews)
             if (finalUrl.startsWith('data:')) {
@@ -91,13 +105,14 @@ const GlassCard: React.FC<GlassCardProps> = ({
             isAborted = true;
             if (activeUrl) URL.revokeObjectURL(activeUrl);
         };
-    }, [isPlaying, finalUrl, finalType]);
+    }, [isPlaying, finalUrl, finalType, blurred]);
 
     return (
         <motion.div
             className={cn(
-                'bg-white p-2 rounded-lg shadow-chat border border-transparent relative overflow-hidden text-black',
+                'p-2 rounded-lg shadow-chat border border-transparent relative overflow-hidden text-black',
                 'rounded-tr-lg rounded-tl-lg rounded-br-lg rounded-bl-sm',
+                isMe ? 'bg-[#D9FDD3] self-end rounded-tr-sm rounded-br-lg' : 'bg-white self-start',
                 className
             )}
             initial={{ opacity: 0, scale: 0.98 }}
@@ -105,6 +120,11 @@ const GlassCard: React.FC<GlassCardProps> = ({
             transition={{ duration: 0.2 }}
             {...props}
         >
+            {is_deepfake === 1 && (
+                <div className="absolute top-0 right-0 p-1 bg-red-500/10 rounded-bl-lg">
+                    <span className="text-[8px] font-black text-red-500 uppercase tracking-tighter">⚠ Deepfake</span>
+                </div>
+            )}
             {/* Tag/Label/Author */}
             {(tag || label || authorName) && (
                 <div className="mb-1 flex items-center justify-between">
@@ -136,68 +156,91 @@ const GlassCard: React.FC<GlassCardProps> = ({
             )}
 
             {/* Content Rendering */}
-            <div className="flex flex-col gap-2">
-                {finalUrl && finalType === 'image' && (
-                    <div
-                        className="w-full rounded-md overflow-hidden bg-black/5 flex items-center justify-center relative cursor-pointer border border-gray-100/50 shadow-sm"
-                        onClick={() => setIsFullscreen(true)}
-                    >
-                        <img
-                            src={finalUrl}
-                            alt="Media"
-                            className="max-w-full max-h-[70vh] object-contain"
-                            loading="eager"
-                        />
-                    </div>
-                )}
-
-                {finalUrl && finalType === 'video' && (
-                    !isPlaying ? (
-                        <div
-                            className="w-full rounded-md overflow-hidden bg-black/5 flex items-center justify-center relative cursor-pointer group border border-gray-100/50 shadow-sm"
-                            onClick={() => { setIsPlaying(true); setIsFullscreen(true); }}
-                        >
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors z-10 pointer-events-none">
-                                <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                                    <Play className="text-black fill-black ml-1" size={24} />
-                                </div>
-                            </div>
-                            <video
-                                src={finalUrl}
-                                className="max-w-full max-h-[70vh] object-contain pointer-events-none"
-                                playsInline
-                                muted
-                                preload="metadata"
-                            />
-                            {/* Explicit overlay for mobile touch capture */}
-                            <div className="absolute inset-0 z-20" />
+            <div className="flex flex-col gap-2 relative">
+                {blurred ? (
+                    <div className="flex flex-col items-center justify-center p-6 text-center space-y-2 bg-black/5 rounded-lg border border-dashed border-black/10 backdrop-blur-md w-full">
+                        <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center text-black/40">
+                            <Lock size={18} />
                         </div>
-                    ) : (
-                        <div className="w-full rounded-md overflow-hidden bg-black/5 flex flex-col items-center justify-center relative border border-gray-100/50 shadow-sm">
-                            {isProcessing ? (
-                                <div className="flex flex-col items-center gap-3 py-8">
-                                    <div className="w-8 h-8 border-3 border-[#00A884]/30 border-t-[#00A884] rounded-full animate-spin" />
-                                    <p className="text-xs font-medium text-gray-500 animate-pulse uppercase tracking-widest">Processing...</p>
+                        <p className="text-[10px] font-bold text-black/60 leading-tight">
+                            Content visible to <span className="text-[#00A884]">verified users</span> only
+                        </p>
+                        <p className="text-[9px] text-black/40 italic">
+                            {props.blur_reason || "Sensitive or unverified media content"}
+                        </p>
+                    </div>
+                ) : (
+                    <>
+                        {finalUrl && finalType === 'image' && (
+                            <div
+                                className="w-full rounded-md overflow-hidden bg-black/5 flex items-center justify-center relative cursor-pointer border border-gray-100/50 shadow-sm select-none"
+                                onClick={() => setIsFullscreen(true)}
+                                onContextMenu={(e) => e.preventDefault()}
+                            >
+                                <img
+                                    src={finalUrl}
+                                    alt="Media"
+                                    className="max-w-full max-h-[70vh] object-contain pointer-events-none"
+                                    loading="eager"
+                                    draggable={false}
+                                    onContextMenu={(e) => e.preventDefault()}
+                                />
+                            </div>
+                        )}
+
+                        {finalUrl && finalType === 'video' && (
+                            !isPlaying ? (
+                                <div
+                                    className="w-full rounded-md overflow-hidden bg-black/5 flex items-center justify-center relative cursor-pointer group border border-gray-100/50 shadow-sm select-none"
+                                    onClick={() => { setIsPlaying(true); setIsFullscreen(true); }}
+                                    onContextMenu={(e) => e.preventDefault()}
+                                >
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors z-10 pointer-events-none">
+                                        <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                            <Play className="text-black fill-black ml-1" size={24} />
+                                        </div>
+                                    </div>
+                                    <video
+                                        src={finalUrl}
+                                        className="max-w-full max-h-[70vh] object-contain pointer-events-none"
+                                        playsInline
+                                        muted
+                                        preload="metadata"
+                                        onContextMenu={(e) => e.preventDefault()}
+                                    />
+                                    {/* Explicit overlay for mobile touch capture */}
+                                    <div className="absolute inset-0 z-20" />
                                 </div>
                             ) : (
-                                <video
-                                    src={videoBlobUrl || finalUrl}
-                                    controls
-                                    autoPlay
-                                    muted
-                                    playsInline
-                                    preload="metadata"
-                                    className="max-w-full max-h-[70vh] object-contain"
-                                />
-                            )}
-                        </div>
-                    )
-                )}
+                                <div className="w-full rounded-md overflow-hidden bg-black/5 flex flex-col items-center justify-center relative border border-gray-100/50 shadow-sm">
+                                    {isProcessing ? (
+                                        <div className="flex flex-col items-center gap-3 py-8">
+                                            <div className="w-8 h-8 border-3 border-[#00A884]/30 border-t-[#00A884] rounded-full animate-spin" />
+                                            <p className="text-xs font-medium text-gray-500 animate-pulse uppercase tracking-widest">Processing...</p>
+                                        </div>
+                                    ) : (
+                                        <video
+                                            src={videoBlobUrl || finalUrl}
+                                            controls
+                                            autoPlay
+                                            muted
+                                            playsInline
+                                            preload="metadata"
+                                            className="max-w-full max-h-[70vh] object-contain"
+                                            controlsList="nodownload nofullscreen"
+                                            onContextMenu={(e) => e.preventDefault()}
+                                        />
+                                    )}
+                                </div>
+                            )
+                        )}
 
-                {content && (
-                    <p className="text-sm leading-relaxed text-[#111B21] whitespace-pre-wrap font-sans">
-                        {content}
-                    </p>
+                        {content && (
+                            <p className="text-sm leading-relaxed text-[#111B21] whitespace-pre-wrap font-sans">
+                                {content}
+                            </p>
+                        )}
+                    </>
                 )}
 
                 {children}
@@ -224,7 +267,9 @@ const GlassCard: React.FC<GlassCardProps> = ({
                             <img
                                 src={finalUrl}
                                 alt="Fullscreen Media"
-                                className="max-w-full max-h-full object-contain rounded-md shadow-2xl"
+                                className="max-w-full max-h-full object-contain rounded-md shadow-2xl select-none"
+                                draggable={false}
+                                onContextMenu={(e) => e.preventDefault()}
                             />
                         ) : (
                             <video
@@ -233,6 +278,8 @@ const GlassCard: React.FC<GlassCardProps> = ({
                                 playsInline
                                 autoPlay
                                 className="max-w-full max-h-[85vh] rounded-md shadow-2xl bg-black"
+                                controlsList="nodownload nofullscreen"
+                                onContextMenu={(e) => e.preventDefault()}
                             />
                         )}
                     </div>

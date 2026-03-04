@@ -8,10 +8,13 @@ import NameModal from '@/components/ui/NameModal';
 import { Send, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import { useUploadThing } from '@/lib/uploadthing';
 import { cn } from '@/lib/utils';
+import heic2any from 'heic2any';
+
+import { canPost, canView } from '@/lib/permissions';
 
 export default function RootPage() {
   const { posts, handleLike, handleThumbUp, isLoading, loadingProgress, hasMore, loadMorePosts, createPost,
-    anonId, userName, setUserName, showNameModal, setShowNameModal, pendingPost, setPendingPost } = useApp();
+    anonId, userProfile, setUserProfile, showNameModal, setShowNameModal, pendingPost, setPendingPost, level } = useApp();
   const [text, setText] = useState('');
 
   // File States
@@ -27,6 +30,8 @@ export default function RootPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const feedContainerRef = useRef<HTMLDivElement>(null);
 
   const { startUpload } = useUploadThing("mediaUploader", {
     onUploadProgress: (p: number) => setUploadProgress(p),
@@ -36,8 +41,30 @@ export default function RootPage() {
   });
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    let file = e.target.files?.[0];
     if (!file) return;
+
+    // HEIC Conversion Logic
+    const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+
+    if (isHeic) {
+      setUploadSpeed('Converting...');
+      setIsUploading(true);
+      try {
+        const result = await heic2any({
+          blob: file,
+          toType: "image/jpeg",
+          quality: 0.8
+        });
+        const blob = Array.isArray(result) ? result[0] : result;
+        file = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: "image/jpeg" });
+      } catch (err) {
+        console.error("HEIC conversion failed:", err);
+        alert("Failed to process HEIC image. Please try another format.");
+        setIsUploading(false);
+        return;
+      }
+    }
 
     setSelectedFile(file);
     const mType = file.type.startsWith('video/') ? 'video' : 'image';
@@ -103,7 +130,9 @@ export default function RootPage() {
     }
   };
 
-  // Infinite Scroll
+  // Infinite Scroll (Load Newer/Older depends on logic, here we load newer if we had 'before' but now we have 'after')
+  // For WhatsApp style, we usually want to load OLDER messages at the top. 
+  // However, current implementation fetches chronological ASC.
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -120,6 +149,30 @@ export default function RootPage() {
 
     return () => observer.disconnect();
   }, [hasMore, isLoading, loadMorePosts]);
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [posts.length]);
+
+  const canUserPost = canPost(userProfile, level);
+  const canUserView = canView(userProfile, level);
+
+  if (!canUserView) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-64px)] p-6 bg-[#EFE7DD] text-center">
+        <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-4 text-3xl">
+          🔴
+        </div>
+        <h1 className="text-xl font-black uppercase tracking-tighter mb-2">Restricted Access</h1>
+        <p className="text-sm text-black/60 max-w-xs">
+          The wall is currently in <strong>Lockdown Mode</strong>. Only administrators can view or send messages.
+        </p>
+      </div>
+    );
+  }
 
   // Upload Speed Calculation
   useEffect(() => {
@@ -148,15 +201,14 @@ export default function RootPage() {
 
   // After name is claimed, auto-retry the pending post
   useEffect(() => {
-    if (userName && pendingPost) {
+    if (userProfile?.name && pendingPost) {
       createPost(pendingPost).then(() => {
         setText('');
         clearAttachment();
       }).finally(() => setPendingPost(null));
     }
-    // Only trigger when userName first becomes available
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userName]);
+  }, [userProfile?.name]);
 
   return (
     <div className="flex flex-col h-[calc(100dvh-64px)] relative">
@@ -166,8 +218,8 @@ export default function RootPage() {
       {showNameModal && anonId && (
         <NameModal
           anonId={anonId}
-          onSuccess={(name) => {
-            setUserName(name);
+          onSuccess={(user) => {
+            setUserProfile(user);
             setShowNameModal(false);
           }}
         />
@@ -179,7 +231,10 @@ export default function RootPage() {
       </div>
 
       {/* Feed Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 relative z-10 custom-scrollbar">
+      <div
+        ref={feedContainerRef}
+        className="flex-1 overflow-y-auto p-4 space-y-4 relative z-10 custom-scrollbar flex flex-col"
+      >
         {posts.length === 0 && !isLoading && (
           <div className="flex flex-col items-center justify-center h-full opacity-20 select-none pointer-events-none">
             <h2 className="text-4xl font-black tracking-tighter uppercase grayscale">Wall_Is_Empty</h2>
@@ -187,8 +242,11 @@ export default function RootPage() {
         )}
 
         {posts.map((post) => (
-          <div key={post.id} className="flex flex-col gap-1 max-w-[90%] md:max-w-[75%] ml-0 mr-auto">
-            <GlassCard {...post} />
+          <div key={post.id} className={cn(
+            "flex flex-col gap-1 max-w-[90%] md:max-w-[75%]",
+            userProfile?.id === post.user_id ? "ml-auto mr-0 items-end" : "ml-0 mr-auto items-start"
+          )}>
+            <GlassCard {...post} authorId={post.user_id} />
             <div className="flex items-center justify-end w-full px-1">
               <div className="flex items-center gap-3">
                 <button
@@ -224,77 +282,87 @@ export default function RootPage() {
       </div>
 
       {/* Input Area */}
-      <div className="bg-[#F0F2F5] p-2 md:p-3 px-3 md:px-4 flex items-end gap-2 md:gap-3 z-20 relative shrink-0 border-t border-gray-200">
-        <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*,video/*" className="hidden" />
+      {canUserPost ? (
+        <div className="bg-[#F0F2F5] p-2 md:p-3 px-3 md:px-4 flex items-end gap-2 md:gap-3 z-20 relative shrink-0 border-t border-gray-200">
+          <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*,video/*" className="hidden" />
 
-        <div className="flex gap-1 pb-2 text-gray-500">
+          <div className="flex gap-1 pb-2 text-gray-500">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 hover:bg-gray-200 rounded-full transition-colors relative"
+              disabled={isUploading}
+            >
+              <ImageIcon size={24} className={previewUrl ? "text-[#00A884]" : ""} />
+              {previewUrl && <div className="absolute top-1 right-1 w-2 h-2 bg-[#00A884] rounded-full border-2 border-[#F0F2F5]" />}
+            </button>
+          </div>
+
+          <div className="flex-1 bg-white rounded-2xl flex flex-col border border-white focus-within:border-gray-200 shadow-sm overflow-hidden mb-1 transition-all">
+            {previewUrl && (
+              <div className="p-2 bg-gray-50 border-b border-gray-100 relative group">
+                <div className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 relative">
+                  {fileType === 'video' ? (
+                    <video src={previewUrl} className="w-full h-full object-cover" />
+                  ) : (
+                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                  )}
+                  {isUploading && (
+                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center backdrop-blur-[2px]">
+                      <span className="text-[11px] text-white font-black tracking-wider">{uploadProgress}%</span>
+                      {uploadSpeed && <span className="text-[8px] text-white/80 font-bold uppercase tracking-widest mt-0.5">{uploadSpeed}</span>}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={clearAttachment}
+                  className="absolute top-1 left-[84px] p-1 bg-white rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+            <textarea
+              placeholder="Type a message..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              className="w-full p-2.5 px-4 text-sm resize-none focus:outline-none bg-transparent min-h-[44px] max-h-[120px] scrollbar-hide"
+              rows={1}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'inherit';
+                target.style.height = `${target.scrollHeight}px`;
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handlePost();
+                }
+              }}
+            />
+          </div>
+
           <button
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2 hover:bg-gray-200 rounded-full transition-colors relative"
-            disabled={isUploading}
+            onClick={handlePost}
+            disabled={isUploading || (!text.trim() && !uploadedFileUrl)}
+            className={cn(
+              "mb-1 p-3 rounded-full transition-all shadow-md active:scale-95",
+              isUploading || (!text.trim() && !uploadedFileUrl)
+                ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
+                : "bg-[#00A884] hover:bg-[#008f6f] text-white"
+            )}
           >
-            <ImageIcon size={24} className={previewUrl ? "text-[#00A884]" : ""} />
-            {previewUrl && <div className="absolute top-1 right-1 w-2 h-2 bg-[#00A884] rounded-full border-2 border-[#F0F2F5]" />}
+            {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} className="ml-0.5" />}
           </button>
         </div>
-
-        <div className="flex-1 bg-white rounded-2xl flex flex-col border border-white focus-within:border-gray-200 shadow-sm overflow-hidden mb-1 transition-all">
-          {previewUrl && (
-            <div className="p-2 bg-gray-50 border-b border-gray-100 relative group">
-              <div className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 relative">
-                {fileType === 'video' ? (
-                  <video src={previewUrl} className="w-full h-full object-cover" />
-                ) : (
-                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                )}
-                {isUploading && (
-                  <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center backdrop-blur-[2px]">
-                    <span className="text-[11px] text-white font-black tracking-wider">{uploadProgress}%</span>
-                    {uploadSpeed && <span className="text-[8px] text-white/80 font-bold uppercase tracking-widest mt-0.5">{uploadSpeed}</span>}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={clearAttachment}
-                className="absolute top-1 left-[84px] p-1 bg-white rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          )}
-          <textarea
-            placeholder="Type a message..."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            className="w-full p-2.5 px-4 text-sm resize-none focus:outline-none bg-transparent min-h-[44px] max-h-[120px] scrollbar-hide"
-            rows={1}
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement;
-              target.style.height = 'inherit';
-              target.style.height = `${target.scrollHeight}px`;
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handlePost();
-              }
-            }}
-          />
+      ) : (
+        <div className="bg-white/80 backdrop-blur-md p-4 text-center border-t border-gray-200 z-20 sticky bottom-0">
+          <p className="text-xs font-bold text-black/40 uppercase tracking-widest">
+            {level === 1 ? "🔐 Verified users only can post" :
+              level === 2 ? "🟠 Admin broadcast mode active" :
+                "🔴 lockdown mode active"}
+          </p>
         </div>
-
-        <button
-          onClick={handlePost}
-          disabled={isUploading || (!text.trim() && !uploadedFileUrl)}
-          className={cn(
-            "mb-1 p-3 rounded-full transition-all shadow-md active:scale-95",
-            isUploading || (!text.trim() && !uploadedFileUrl)
-              ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
-              : "bg-[#00A884] hover:bg-[#008f6f] text-white"
-          )}
-        >
-          {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} className="ml-0.5" />}
-        </button>
-      </div>
+      )}
     </div>
   );
 }

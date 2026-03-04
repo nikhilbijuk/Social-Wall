@@ -5,33 +5,40 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        // Top 10 Users by likes (using thumbs_up_count as well)
-        const userLeaderboardQuery = `
-            SELECT u.name, SUM(p.likes_count + p.thumbs_up_count) as total_points
-            FROM posts p
-            JOIN users u ON p.user_id = u.id
-            GROUP BY u.id
-            ORDER BY total_points DESC
+        // Weighted leaderboard: hearts × 3 + thumbs × 2 + posts × 1
+        const result = await db.execute(`
+            SELECT 
+              u.id,
+              u.name,
+              u.is_verified,
+              COALESCE(p.total_posts, 0) AS total_posts,
+              COALESCE(r.hearts, 0) AS hearts,
+              COALESCE(r.thumbs, 0) AS thumbs,
+              (
+                COALESCE(r.hearts, 0) * 3 +
+                COALESCE(r.thumbs, 0) * 2 +
+                COALESCE(p.total_posts, 0)
+              ) AS score
+            FROM users u
+            LEFT JOIN (
+              SELECT user_id, COUNT(*) AS total_posts
+              FROM posts
+              GROUP BY user_id
+            ) p ON p.user_id = u.id
+            LEFT JOIN (
+              SELECT 
+                posts.user_id,
+                SUM(CASE WHEN reactions.type = 'heart' THEN 1 ELSE 0 END) AS hearts,
+                SUM(CASE WHEN reactions.type = 'thumb' THEN 1 ELSE 0 END) AS thumbs
+              FROM reactions
+              JOIN posts ON posts.id = reactions.post_id
+              GROUP BY posts.user_id
+            ) r ON r.user_id = u.id
+            ORDER BY score DESC
             LIMIT 10
-        `;
+        `);
 
-        // Top Teams (if teams table exists, else generic)
-        // Adjusting based on standard schema seen in previous sessions
-        const teamLeaderboardQuery = `
-            SELECT 'Main Team' as name, SUM(likes_count + thumbs_up_count) as team_points
-            FROM posts
-            LIMIT 5
-        `;
-
-        const [userResult, teamResult] = await Promise.all([
-            db.execute(userLeaderboardQuery),
-            db.execute(teamLeaderboardQuery)
-        ]);
-
-        return NextResponse.json({
-            users: userResult.rows,
-            teams: teamResult.rows
-        });
+        return NextResponse.json(result.rows);
     } catch (error) {
         console.error("Leaderboard error:", error);
         return NextResponse.json({ error: "Failed to fetch leaderboard" }, { status: 500 });

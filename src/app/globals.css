@@ -24,11 +24,18 @@
 }
 
 @layer base {
-    body {
-        @apply bg-[#EFE7DD] text-[#111B21] font-sans antialiased overflow-x-hidden selection:bg-[#00A884]/30 selection:text-black;
+    :root {
+        color-scheme: light only;
     }
 
-    h1, h2, h3 {
+    body {
+        @apply bg-[#EFE7DD] text-[#111B21] font-sans antialiased overflow-x-hidden selection:bg-[#00A884]/30 selection:text-black;
+        color-scheme: light only;
+    }
+
+    h1,
+    h2,
+    h3 {
         @apply font-heading uppercase tracking-tight font-black;
     }
 }
@@ -37,6 +44,7 @@
     .scrollbar-hide::-webkit-scrollbar {
         display: none;
     }
+
     .scrollbar-hide {
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -46,13 +54,16 @@
     .custom-scrollbar::-webkit-scrollbar {
         width: 4px;
     }
+
     .custom-scrollbar::-webkit-scrollbar-track {
         background: transparent;
     }
+
     .custom-scrollbar::-webkit-scrollbar-thumb {
         background: rgba(0, 168, 132, 0.2);
         border-radius: 10px;
     }
+
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: rgba(0, 168, 132, 0.4);
     }

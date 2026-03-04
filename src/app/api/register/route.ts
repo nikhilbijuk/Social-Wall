@@ -19,7 +19,17 @@ export async function GET(req: Request) {
         });
 
         if (result.rows.length > 0) {
-            return NextResponse.json({ registered: true, name: result.rows[0].name });
+            const user = result.rows[0];
+            return NextResponse.json({
+                registered: true,
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    is_admin: !!user.is_admin,
+                    is_verified: !!user.is_verified,
+                    can_verify: !!user.can_verify
+                }
+            });
         }
 
         return NextResponse.json({ registered: false });
@@ -66,11 +76,20 @@ export async function POST(req: Request) {
 
         // Insert new user
         await db.execute({
-            sql: "INSERT INTO users (id, name, role, created_at) VALUES (?, ?, 'guest', CURRENT_TIMESTAMP)",
+            sql: "INSERT INTO users (id, name, role, is_admin, is_verified, can_verify, created_at) VALUES (?, ?, 'guest', 0, 0, 0, CURRENT_TIMESTAMP)",
             args: [anonId, trimmedName],
         });
 
-        return NextResponse.json({ success: true, name: trimmedName });
+        return NextResponse.json({
+            success: true,
+            user: {
+                id: anonId,
+                name: trimmedName,
+                is_admin: false,
+                is_verified: false,
+                can_verify: false
+            }
+        });
     } catch (err: any) {
         console.error("Register POST error:", err);
         return NextResponse.json({ error: "Server error" }, { status: 500 });

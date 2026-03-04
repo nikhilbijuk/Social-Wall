@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { createPostAction } from '@/app/actions/posts';
 
+import { UserProfile } from '@/lib/permissions';
+
 interface AppContextType {
     posts: any[];
     isLoading: boolean;
@@ -14,12 +16,18 @@ interface AppContextType {
     handleThumbUp: (postId: string, currentThumbs: number) => Promise<void>;
     leaderboard: any;
     anonId: string | null;
-    userName: string | null;
-    setUserName: (name: string) => void;
+    userProfile: UserProfile | null;
+    setUserProfile: (profile: UserProfile) => void;
     showNameModal: boolean;
     setShowNameModal: (v: boolean) => void;
     pendingPost: any | null;
     setPendingPost: (data: any | null) => void;
+    level: number;
+    fetchSettings: () => Promise<void>;
+    generateSyncCode: () => Promise<string>;
+    claimSyncCode: (code: string) => Promise<boolean>;
+    showVerificationModal: boolean;
+    setShowVerificationModal: (v: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -31,11 +39,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const [hasMore, setHasMore] = useState(true);
     const [leaderboard, setLeaderboard] = useState<any>(null);
     const [anonId, setAnonId] = useState<string | null>(null);
-    const [userName, setUserNameState] = useState<string | null>(null);
+    const [userProfile, setUserProfileState] = useState<UserProfile | null>(null);
     const [showNameModal, setShowNameModal] = useState(false);
     const [pendingPost, setPendingPost] = useState<any | null>(null);
+    const [level, setLevel] = useState(0);
+    const [showVerificationModal, setShowVerificationModal] = useState(false);
 
-    // Initialize anonymous ID and username from localStorage
+    // Initialize anonymous ID and user profile from localStorage/API
     useEffect(() => {
         let id = localStorage.getItem('anonId');
         if (!id) {
@@ -44,26 +54,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         setAnonId(id);
 
-        const savedName = localStorage.getItem('userName');
-        if (savedName) setUserNameState(savedName);
+        const savedProfile = localStorage.getItem('userProfile');
+        if (savedProfile) {
+            try {
+                setUserProfileState(JSON.parse(savedProfile));
+            } catch (e) {
+                console.error("Failed to parse saved profile", e);
+            }
+        }
+
+        // Verify with server on load
+        fetch(`/api/register?anonId=${id}`).then(res => res.json()).then(data => {
+            if (data.registered && data.user) {
+                setUserProfile(data.user);
+            }
+        });
+
+        fetchSettings();
     }, []);
 
-    const setUserName = (name: string) => {
-        setUserNameState(name);
-        localStorage.setItem('userName', name);
+    const fetchSettings = async () => {
+        try {
+            const res = await fetch('/api/settings');
+            const data = await res.json();
+            if (typeof data.level === 'number') {
+                setLevel(data.level);
+            }
+        } catch (err) {
+            console.error("Settings fetch error:", err);
+        }
     };
 
-    const fetchPosts = useCallback(async (before?: number) => {
+    const setUserProfile = (profile: UserProfile) => {
+        setUserProfileState(profile);
+        localStorage.setItem('userProfile', JSON.stringify(profile));
+    };
+
+    const fetchPosts = useCallback(async (after?: number) => {
         setIsLoading(true);
         setLoadingProgress(30);
         try {
-            const url = `/api/posts?limit=10${before ? `&before=${before}` : ''}`;
+            const url = `/api/posts?limit=10${after ? `&after=${after}` : ''}`;
             const res = await fetch(url);
             const data = await res.json();
 
             setLoadingProgress(80);
             if (Array.isArray(data)) {
-                if (before) {
+                if (after) {
                     setPosts(prev => [...prev, ...data]);
                 } else {
                     setPosts(data);
@@ -71,12 +108,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setHasMore(data.length === 10);
             } else {
                 console.error("API returned non-array data:", data);
-                if (!before) setPosts([]);
+                if (!after) setPosts([]);
                 setHasMore(false);
             }
         } catch (err) {
             console.error("Fetch error:", err);
-            if (!before) setPosts([]);
+            if (!after) setPosts([]);
         } finally {
             setIsLoading(false);
             setLoadingProgress(100);
@@ -87,7 +124,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         try {
             const res = await fetch('/api/leaderboard');
             const data = await res.json();
-            if (data && !data.error) {
+            if (Array.isArray(data)) {
                 setLeaderboard(data);
             }
         } catch (err) {
@@ -108,8 +145,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    // After identity is claimed/synced, auto-retry the pending post
+    useEffect(() => {
+        if (userProfile?.name && pendingPost) {
+            createPost(pendingPost).finally(() => setPendingPost(null));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userProfile?.name]);
+
     const createPost = async (data: any) => {
-        if (!userName) {
+        if (!userProfile) {
             // Save the post data and show name modal
             setPendingPost(data);
             setShowNameModal(true);
@@ -147,12 +192,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const generateSyncCode = async () => {
+        if (!userProfile?.id) return '';
+        const res = await fetch('/api/sync/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: userProfile.id })
+        });
+        const data = await res.json();
+        return data.code || '';
+    };
+
+    const claimSyncCode = async (code: string) => {
+        const res = await fetch('/api/sync/claim', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+        if (data.user) {
+            setUserProfile(data.user);
+            localStorage.setItem('anonId', data.user.id);
+            // Reload to sync all state correctly
+            window.location.reload();
+            return true;
+        }
+        return false;
+    };
+
     return (
         <AppContext.Provider value={{
             posts, isLoading, loadingProgress, hasMore, loadMorePosts,
             createPost, handleLike, handleThumbUp, leaderboard,
-            anonId, userName, setUserName, showNameModal, setShowNameModal,
-            pendingPost, setPendingPost,
+            anonId, userProfile, setUserProfile, showNameModal, setShowNameModal,
+            pendingPost, setPendingPost, level, fetchSettings,
+            generateSyncCode, claimSyncCode,
+            showVerificationModal, setShowVerificationModal
         }}>
             {children}
         </AppContext.Provider>
