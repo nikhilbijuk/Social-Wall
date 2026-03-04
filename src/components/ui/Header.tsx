@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ShieldCheck, RefreshCw } from 'lucide-react';
+import { ShieldCheck, RefreshCw, Smartphone } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { cn } from "@/lib/utils";
 import VerificationModal from '@/components/ui/VerificationModal';
@@ -60,9 +60,9 @@ export function Header() {
                             onClick={handleSyncRequest}
                             disabled={isSyncing}
                             className="p-2 bg-gray-50 text-gray-600 rounded-full hover:bg-[#00A884]/10 hover:text-[#00A884] transition-all disabled:opacity-50"
-                            title="Sync Device"
+                            title="Sync PC with Mobile"
                         >
-                            <RefreshCw size={18} className={cn(isSyncing && "animate-spin")} />
+                            <Smartphone size={18} className={cn(isSyncing && "animate-pulse text-[#00A884]")} />
                         </button>
                     )}
 

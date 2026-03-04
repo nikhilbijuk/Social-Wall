@@ -130,13 +130,12 @@ export default function RootPage() {
     }
   };
 
-  // Infinite Scroll (Load Newer/Older depends on logic, here we load newer if we had 'before' but now we have 'after')
-  // For WhatsApp style, we usually want to load OLDER messages at the top. 
-  // However, current implementation fetches chronological ASC.
+  // Infinite Scroll 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoading) {
+        // Prevent loading history if we are still doing the initial layout/scroll down
+        if (entries[0].isIntersecting && hasMore && !isLoading && !isInitialLoad.current) {
           loadMorePosts();
         }
       },
@@ -164,10 +163,11 @@ export default function RootPage() {
   // Initial scroll to bottom when posts load
   useEffect(() => {
     if (posts.length > 0 && !isLoading && isInitialLoad.current) {
+      // Snap to bottom instantly on load
       const timer = setTimeout(() => {
-        scrollToBottom('smooth');
+        scrollToBottom('auto');
         isInitialLoad.current = false;
-      }, 100);
+      }, 50);
       return () => clearTimeout(timer);
     }
   }, [posts.length, isLoading]);
