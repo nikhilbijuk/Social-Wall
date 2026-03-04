@@ -276,17 +276,39 @@ export default function AdminPage() {
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
+                                        <button
+                                            className={cn(
+                                                "p-1.5 rounded-lg transition-colors border",
+                                                user.is_admin ? "bg-red-50 border-red-200 text-red-600" : "bg-white border-black/10 text-black/20"
+                                            )}
+                                            title={user.is_admin ? "Remove Admin" : "Make Admin"}
+                                            onClick={async () => {
+                                                if (!adminSecret) return alert("Secret required");
+                                                const res = await fetch(`/api/admin/users/${user.id}/admin`, {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ adminSecret, isAdmin: !user.is_admin })
+                                                });
+                                                if (res.ok) fetchUsers();
+                                            }}
+                                        >
+                                            <Shield size={14} />
+                                        </button>
                                         {!user.is_verified && (
                                             <button
-                                                className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                                                className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors border border-blue-100"
                                                 title="Manually Verify"
                                                 onClick={() => handleVerifyAction('manual', user.id, 'approve')}
                                             >
                                                 <UserCheck size={14} />
                                             </button>
                                         )}
-                                        <button className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
-                                            <X size={14} />
+                                        <button
+                                            className="p-1.5 bg-gray-50 text-gray-400 rounded-lg hover:bg-black hover:text-white transition-all border border-black/5"
+                                            title="Copy User ID"
+                                            onClick={() => navigator.clipboard.writeText(user.id)}
+                                        >
+                                            <ExternalLink size={14} />
                                         </button>
                                     </div>
                                 </div>

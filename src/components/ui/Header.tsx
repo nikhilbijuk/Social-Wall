@@ -77,10 +77,16 @@ export function Header() {
                     )}
                 </div>
 
-                <nav className="flex items-center gap-3">
-                    <Link href="/leaderboard" className="hidden sm:block text-xs font-black uppercase tracking-widest text-black/40 hover:text-[#00A884] transition-colors">Leaderboard</Link>
+                <nav className="flex items-center gap-2 md:gap-3">
+                    <Link
+                        href="/leaderboard"
+                        className="flex items-center gap-1 text-xs font-black uppercase tracking-widest text-black/40 hover:text-[#00A884] transition-colors"
+                    >
+                        <span className="sm:hidden text-lg">🏆</span>
+                        <span className="hidden sm:inline">Leaderboard</span>
+                    </Link>
                     {userProfile?.is_admin && (
-                        <Link href="/admin" className="text-xs font-black uppercase tracking-widest text-red-500 hover:scale-105 transition-all bg-red-50 px-3 py-1.5 rounded-lg border border-red-100">Admin</Link>
+                        <Link href="/admin" className="text-[10px] md:text-xs font-black uppercase tracking-widest text-red-500 hover:scale-105 transition-all bg-red-50 px-2 md:px-3 py-1.5 rounded-lg border border-red-100">Admin</Link>
                     )}
                 </nav>
             </div>

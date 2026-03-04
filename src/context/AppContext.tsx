@@ -90,30 +90,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('userProfile', JSON.stringify(profile));
     };
 
-    const fetchPosts = useCallback(async (after?: number) => {
+    const fetchPosts = useCallback(async (options?: { before?: number; after?: number }) => {
         setIsLoading(true);
         setLoadingProgress(30);
         try {
-            const url = `/api/posts?limit=10${after ? `&after=${after}` : ''}`;
+            let url = `/api/posts?limit=10`;
+            if (options?.before) url += `&before=${options.before}`;
+            if (options?.after) url += `&after=${options.after}`;
+
             const res = await fetch(url);
             const data = await res.json();
 
             setLoadingProgress(80);
             if (Array.isArray(data)) {
-                if (after) {
+                if (options?.before) {
+                    // Prepend old messages
+                    setPosts(prev => [...data, ...prev]);
+                    setHasMore(data.length === 10);
+                } else if (options?.after) {
+                    // Append new messages
                     setPosts(prev => [...prev, ...data]);
                 } else {
+                    // Initial load
                     setPosts(data);
+                    setHasMore(data.length === 10);
                 }
-                setHasMore(data.length === 10);
-            } else {
-                console.error("API returned non-array data:", data);
-                if (!after) setPosts([]);
-                setHasMore(false);
             }
         } catch (err) {
             console.error("Fetch error:", err);
-            if (!after) setPosts([]);
         } finally {
             setIsLoading(false);
             setLoadingProgress(100);
@@ -141,7 +145,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const loadMorePosts = () => {
         if (posts.length > 0 && hasMore && !isLoading) {
-            fetchPosts(posts[posts.length - 1].timestamp);
+            fetchPosts({ before: posts[0].timestamp });
         }
     };
 

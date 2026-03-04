@@ -3,7 +3,7 @@
 @theme {
     /* Premium WhatsApp-like Theme */
     --color-background: #EFE7DD;
-    --color-surface: #FFFFFF;
+    --color-surface: #F0F2F5; /* Chat background peach */
     --color-primary: #00A884;
     --color-secondary: #34B7F1;
     --color-accent: #25D366;

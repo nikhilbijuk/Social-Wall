@@ -28,7 +28,7 @@ export default function RootLayout({
             <body className={cn(inter.className, "bg-[#EFE7DD] flex flex-col min-h-screen")}>
                 <AppProvider>
                     <Header />
-                    <main className="flex-1 max-w-4xl mx-auto w-full bg-white md:shadow-2xl relative">
+                    <main className="flex-1 w-full relative">
                         {children}
                     </main>
                     <VerificationModalWrapper />

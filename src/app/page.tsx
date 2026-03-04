@@ -150,12 +150,31 @@ export default function RootPage() {
     return () => observer.disconnect();
   }, [hasMore, isLoading, loadMorePosts]);
 
-  // Auto-scroll to bottom on new messages
-  useEffect(() => {
+  // Robust scroll to bottom
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current.scrollIntoView({ behavior });
     }
-  }, [posts.length]);
+  };
+
+  // Initial scroll to bottom when posts load
+  useEffect(() => {
+    if (posts.length > 0 && !isLoading) {
+      // Delay slightly to ensure layout is ready
+      const timer = setTimeout(() => scrollToBottom('auto'), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [posts.length > 0, isLoading]);
+
+  // Scroll to bottom on NEW messages
+  const lastPostIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const lastPost = posts[posts.length - 1];
+    if (lastPost && lastPost.id !== lastPostIdRef.current) {
+      lastPostIdRef.current = lastPost.id;
+      scrollToBottom('smooth');
+    }
+  }, [posts]);
 
   const canUserPost = canPost(userProfile, level);
   const canUserView = canView(userProfile, level);
@@ -235,53 +254,61 @@ export default function RootPage() {
         ref={feedContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-4 relative z-10 custom-scrollbar flex flex-col"
       >
+        {/* Load History at TOP */}
+        <div ref={loadMoreRef} className="h-20 w-full flex items-center justify-center shrink-0">
+          {hasMore ? (
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="animate-spin text-[#00A884]" size={24} />
+              <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Synchronizing history...</span>
+            </div>
+          ) : posts.length > 0 ? (
+            <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold opacity-30">Beginning of Stream</span>
+          ) : null}
+        </div>
+
         {posts.length === 0 && !isLoading && (
           <div className="flex flex-col items-center justify-center h-full opacity-20 select-none pointer-events-none">
             <h2 className="text-4xl font-black tracking-tighter uppercase grayscale">Wall_Is_Empty</h2>
           </div>
         )}
 
-        {posts.map((post) => (
-          <div key={post.id} className={cn(
-            "flex flex-col gap-1 max-w-[90%] md:max-w-[75%]",
-            userProfile?.id === post.user_id ? "ml-auto mr-0 items-end" : "ml-0 mr-auto items-start"
-          )}>
-            <GlassCard {...post} authorId={post.user_id} />
-            <div className="flex items-center justify-end w-full px-1">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => handleLike(post.id, post.likes_count)}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/50 border border-gray-200 hover:bg-red-50 transition-all group shadow-sm"
-                >
-                  <span className="text-sm group-hover:scale-110 transition-transform">❤️</span>
-                  <span className="text-[11px] font-bold text-gray-600">{post.likes_count || 0}</span>
-                </button>
+        <div className="max-w-4xl mx-auto w-full flex flex-col gap-4">
+          {posts.map((post) => (
+            <div key={post.id} className={cn(
+              "flex flex-col gap-1 max-w-[90%] md:max-w-[85%]",
+              userProfile?.id === post.user_id ? "ml-auto mr-0 items-end" : "ml-0 mr-auto items-start"
+            )}>
+              <div className="w-full flex flex-col items-inherit">
+                <GlassCard {...post} authorId={post.user_id} />
+                <div className={cn(
+                  "flex items-center mt-1 px-1",
+                  userProfile?.id === post.user_id ? "justify-end" : "justify-start"
+                )}>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleLike(post.id, post.likes_count)}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/70 border border-gray-200 hover:bg-red-50 transition-all group shadow-sm"
+                    >
+                      <span className="text-sm group-hover:scale-110 transition-transform">❤️</span>
+                      <span className="text-[11px] font-bold text-gray-600">{post.likes_count || 0}</span>
+                    </button>
 
-                <button
-                  onClick={() => handleThumbUp(post.id, post.thumbs_up_count)}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/50 border border-gray-200 hover:bg-green-50 transition-all group shadow-sm"
-                >
-                  <span className="text-sm group-hover:scale-110 transition-transform">👍</span>
-                  <span className="text-[11px] font-bold text-gray-600">{post.thumbs_up_count || 0}</span>
-                </button>
+                    <button
+                      onClick={() => handleThumbUp(post.id, post.thumbs_up_count)}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/70 border border-gray-200 hover:bg-green-50 transition-all group shadow-sm"
+                    >
+                      <span className="text-sm group-hover:scale-110 transition-transform">👍</span>
+                      <span className="text-[11px] font-bold text-gray-600">{post.thumbs_up_count || 0}</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-
-        <div ref={loadMoreRef} className="h-20 w-full flex items-center justify-center shrink-0">
-          {hasMore ? (
-            <div className="flex flex-col items-center gap-2">
-              <Loader2 className="animate-spin text-[#00A884]" size={24} />
-              <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Synchronizing...</span>
-            </div>
-          ) : posts.length > 0 ? (
-            <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">End of Stream</span>
-          ) : null}
+          ))}
         </div>
-      </div>
 
-      {/* Input Area */}
+        <div ref={messagesEndRef} className="h-2 w-full shrink-0" />
+      </div>
       {canUserPost ? (
         <div className="bg-[#F0F2F5] p-2 md:p-3 px-3 md:px-4 flex items-end gap-2 md:gap-3 z-20 relative shrink-0 border-t border-gray-200">
           <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*,video/*" className="hidden" />
