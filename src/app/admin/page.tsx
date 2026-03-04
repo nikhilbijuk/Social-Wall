@@ -230,7 +230,7 @@ export default function AdminPage() {
                     <div className="p-6">
                         <h2 className="text-sm font-black uppercase tracking-widest mb-4">Content Control</h2>
                         <div className="space-y-3">
-                            {posts.slice(0, 30).map((post) => (
+                            {[...posts].reverse().slice(0, 50).map((post) => (
                                 <div key={post.id} className="p-3 bg-gray-50 rounded-xl border border-black/5 flex items-center justify-between gap-4 transition-all hover:bg-white hover:shadow-sm">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
