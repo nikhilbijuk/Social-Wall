@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { redirect } from 'next/navigation';
-import { Shield, Users, MessageSquare, Settings, CheckCircle2, AlertTriangle, EyeOff, Check, X, ExternalLink, UserCheck } from 'lucide-react';
+import { Shield, Users, MessageSquare, Settings, CheckCircle2, AlertTriangle, EyeOff, Check, X, ExternalLink, UserCheck, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function AdminPage() {
@@ -14,9 +14,11 @@ export default function AdminPage() {
     const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
 
-    // Initial check for is_admin
+    // Initial check for is_admin - only redirect if we ARE loaded and NOT admin
     useEffect(() => {
-        if (userProfile && !userProfile.is_admin) {
+        // We only redirect if we have a profile and we've confirmed they are not an admin
+        // If userProfile is null, we might still be loading, so we wait.
+        if (userProfile && userProfile.is_admin === 0) {
             redirect("/");
         }
     }, [userProfile]);
@@ -94,8 +96,14 @@ export default function AdminPage() {
         }
     };
 
-    if (!userProfile?.is_admin) {
-        return <div className="p-20 text-center font-black uppercase opacity-20">Unauthorized Access</div>;
+    if (!userProfile || !userProfile.is_admin) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-[#EFE7DD] p-10 text-center">
+                <Loader2 className="animate-spin text-black/20 mb-4" size={40} />
+                <h2 className="text-sm font-black uppercase tracking-widest opacity-20">Verifying Credentials...</h2>
+                <p className="text-[10px] font-bold text-black/40 uppercase tracking-widest mt-2">If you are an admin, please wait a moment.</p>
+            </div>
+        );
     }
 
     return (

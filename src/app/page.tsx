@@ -223,7 +223,7 @@ export default function RootPage() {
 
   if (!canUserView) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-64px)] p-6 bg-[#EFE7DD] text-center">
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-[#EFE7DD] text-center">
         <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-4 text-3xl">
           🔴
         </div>
@@ -272,7 +272,7 @@ export default function RootPage() {
   }, [userProfile?.name]);
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-64px)] relative">
+    <div className="flex flex-col h-screen max-h-screen relative overflow-hidden">
       <LoadingOverlay isLoading={isLoading && posts.length === 0} progress={loadingProgress} />
 
       {/* Name Registration Modal */}

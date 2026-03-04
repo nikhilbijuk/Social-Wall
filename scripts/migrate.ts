@@ -20,6 +20,14 @@ async function migrate() {
         console.log("Adding index idx_posts_timestamp...");
         await db.execute("CREATE INDEX IF NOT EXISTS idx_posts_timestamp ON posts(timestamp)");
 
+        // Add is_admin column to users
+        console.log("Adding is_admin column to users...");
+        try {
+            await db.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0");
+        } catch (e) {
+            console.log("is_admin column already exists or failed to add:", e);
+        }
+
         console.log("Migration completed successfully!");
     } catch (error) {
         console.error("Migration failed:", error);
