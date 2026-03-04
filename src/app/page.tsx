@@ -163,12 +163,20 @@ export default function RootPage() {
   // Initial scroll to bottom when posts load
   useEffect(() => {
     if (posts.length > 0 && !isLoading && isInitialLoad.current) {
-      // Snap to bottom instantly on load
-      const timer = setTimeout(() => {
+      // Pin to bottom for the first 1000ms to combat asynchronous image loading Expansion
+      const interval = setInterval(() => {
         scrollToBottom('auto');
+      }, 100);
+
+      const timeout = setTimeout(() => {
+        clearInterval(interval);
         isInitialLoad.current = false;
-      }, 50);
-      return () => clearTimeout(timer);
+      }, 1000);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
     }
   }, [posts.length, isLoading]);
 
