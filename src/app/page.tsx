@@ -8,7 +8,6 @@ import NameModal from '@/components/ui/NameModal';
 import { Send, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import { useUploadThing } from '@/lib/uploadthing';
 import { cn } from '@/lib/utils';
-import heic2any from 'heic2any';
 
 import { canPost, canView } from '@/lib/permissions';
 
@@ -51,6 +50,7 @@ export default function RootPage() {
       setUploadSpeed('Converting...');
       setIsUploading(true);
       try {
+        const heic2any = (await import('heic2any')).default;
         const result = await heic2any({
           blob: file,
           toType: "image/jpeg",
