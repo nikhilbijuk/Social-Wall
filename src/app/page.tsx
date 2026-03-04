@@ -165,7 +165,7 @@ export default function RootPage() {
   useEffect(() => {
     if (posts.length > 0 && !isLoading && isInitialLoad.current) {
       const timer = setTimeout(() => {
-        scrollToBottom('auto');
+        scrollToBottom('smooth');
         isInitialLoad.current = false;
       }, 100);
       return () => clearTimeout(timer);
@@ -185,12 +185,12 @@ export default function RootPage() {
     if (!isLoading && !isInitialLoad.current && feedContainerRef.current && scrollHeightRef.current > 0) {
       const newScrollHeight = feedContainerRef.current.scrollHeight;
       const heightDiff = newScrollHeight - scrollHeightRef.current;
-      
+
       // If we prepended items (height increased), adjust scrollTop to stay on the same item
       if (heightDiff > 0) {
         feedContainerRef.current.scrollTop = scrollPosRef.current + heightDiff;
       }
-      
+
       // Reset markers
       scrollHeightRef.current = 0;
     }
@@ -203,7 +203,7 @@ export default function RootPage() {
     if (lastPost && lastPost.id !== lastPostIdRef.current) {
       const isNewMessage = lastPostIdRef.current !== null;
       lastPostIdRef.current = lastPost.id;
-      
+
       if (isNewMessage) {
         scrollToBottom('smooth');
       }

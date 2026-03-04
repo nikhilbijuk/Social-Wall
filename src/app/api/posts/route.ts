@@ -16,7 +16,9 @@ export async function GET(req: Request) {
 
         let query = `
             SELECT * FROM (
-                SELECT p.*, u.name as authorName, u.is_verified, p.created_at as formatted_date 
+                SELECT p.*, u.name as authorName, u.is_verified, p.created_at as formatted_date,
+                       COALESCE(p.likes_count, 0) as likes_count,
+                       COALESCE(p.thumbs_up_count, 0) as thumbs_up_count
                 FROM posts p 
                 LEFT JOIN users u ON p.user_id = u.id
                 ${before ? 'WHERE p.timestamp < ?' : (after ? 'WHERE p.timestamp > ?' : '')}
