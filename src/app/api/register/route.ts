@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
     try {
         const result = await db.execute({
-            sql: "SELECT id, name FROM users WHERE id = ?",
+            sql: "SELECT id, name, is_admin, is_verified, can_verify FROM users WHERE id = ?",
             args: [anonId],
         });
 
