@@ -3,7 +3,7 @@ import { memo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import { motion, type HTMLMotionProps } from 'framer-motion';
-import { Play, CheckCircle2, X, Lock } from 'lucide-react';
+import { Play, CheckCircle2, X, Lock, AlertTriangle, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -133,22 +133,36 @@ const GlassCard: React.FC<GlassCardProps> = ({
                             {authorName || tag || label}
                         </span>
                         {is_verified === 1 && (
-                            <CheckCircle2 size={10} className="text-[#34B7F1] fill-[#34B7F1]/10" />
+                            <span className="text-blue-500 text-[10px] font-black" title="Verified">✔</span>
                         )}
                         {edited && (
                             <span className="text-[8px] text-black/30 font-medium lowercase">
                                 • edited
                             </span>
                         )}
+                        {userProfile?.is_admin === 1 && (
+                            <div className="flex items-center gap-1 ml-2">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); /* Logic to toggle deepfake */ }}
+                                    className={cn("p-1 rounded bg-black/5 hover:bg-red-500/10 text-black/20 hover:text-red-500 transition-colors", is_deepfake === 1 && "text-red-500 bg-red-500/10")}
+                                    title="Mark Deepfake"
+                                >
+                                    <AlertTriangle size={10} />
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); /* Logic to toggle blur */ }}
+                                    className={cn("p-1 rounded bg-black/5 hover:bg-orange-500/10 text-black/20 hover:text-orange-500 transition-colors", is_blur === 1 && "text-orange-500 bg-orange-500/10")}
+                                    title="Blur Content"
+                                >
+                                    <EyeOff size={10} />
+                                </button>
+                            </div>
+                        )}
                     </div>
                     {(createdAt || timestamp) && (
                         <div className="flex items-center gap-1.5 opacity-70">
                             <span className="text-[10px] text-gray-500 font-mono tracking-tight font-medium">
                                 {createdAt ? dayjs(createdAt).fromNow() : dayjs(Number(timestamp)).fromNow()}
-                            </span>
-                            <span className="text-gray-300 text-[10px]">•</span>
-                            <span className="text-[9px] text-gray-400 font-mono uppercase tracking-widest">
-                                {createdAt ? dayjs(createdAt).format('ddd hh:mm A') : dayjs(Number(timestamp)).format('ddd hh:mm A')}
                             </span>
                         </div>
                     )}

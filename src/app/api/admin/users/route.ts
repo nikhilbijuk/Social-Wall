@@ -1,19 +1,33 @@
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
 export const dynamic = 'force-dynamic';
 
-/**
- * GET /api/admin/users
- * Fetches all registered users for manual moderation.
- */
 export async function GET(req: Request) {
     try {
-        const { searchParams } = new URL(req.url);
-        const adminSecret = searchParams.get('adminSecret');
+        const cookieStore = await cookies();
+        const anonId = cookieStore.get("anonId")?.value;
 
-        if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
+        if (!anonId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // Verify admin status from DB
+        const adminCheck = await db.execute({
+            sql: "SELECT is_admin FROM users WHERE id = ?",
+            args: [anonId]
+        });
+
+        const isAdmin = adminCheck.rows[0]?.is_admin === 1;
+
+        if (!isAdmin) {
+            // Fallback to secret for initial setup or legacy support
+            const { searchParams } = new URL(req.url);
+            const adminSecret = searchParams.get('adminSecret');
+            if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
+                return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            }
         }
 
         const users = await db.execute({

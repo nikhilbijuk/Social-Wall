@@ -56,14 +56,20 @@ export function Header() {
 
                 <div className="flex items-center gap-2">
                     {userProfile?.name && (
-                        <button
-                            onClick={handleSyncRequest}
-                            disabled={isSyncing}
-                            className="p-2 bg-gray-50 text-gray-600 rounded-full hover:bg-[#00A884]/10 hover:text-[#00A884] transition-all disabled:opacity-50"
-                            title="Sync PC with Mobile"
-                        >
-                            <Smartphone size={18} className={cn(isSyncing && "animate-pulse text-[#00A884]")} />
-                        </button>
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-100 group">
+                            <span className="text-xs font-black uppercase tracking-tighter text-black/60">{userProfile.name}</span>
+                            {userProfile.is_verified ? (
+                                <span className="text-blue-500 text-[10px]" title="Verified">✔</span>
+                            ) : null}
+                            <button
+                                onClick={handleSyncRequest}
+                                disabled={isSyncing}
+                                className="ml-1 p-1 hover:bg-[#00A884]/10 hover:text-[#00A884] transition-all disabled:opacity-50 text-gray-400"
+                                title="Sync PC with Mobile"
+                            >
+                                <Smartphone size={14} className={cn(isSyncing && "animate-pulse text-[#00A884]")} />
+                            </button>
+                        </div>
                     )}
 
                     {!userProfile?.is_verified && userProfile?.name && (

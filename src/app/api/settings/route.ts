@@ -9,10 +9,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
     try {
-        const result = await db.execute("SELECT level FROM settings WHERE id = 1");
+        const result = await db.execute("SELECT level FROM platform_state WHERE id = 1");
         if (result.rows.length === 0) {
-            // Self-heal if row is missing
-            await db.execute("INSERT OR IGNORE INTO settings (id, level) VALUES (1, 0)");
+            await db.execute("INSERT OR IGNORE INTO platform_state (id, level) VALUES (1, 0)");
             return NextResponse.json({ level: 0 });
         }
         return NextResponse.json({ level: Number(result.rows[0].level) });
@@ -24,15 +23,13 @@ export async function GET() {
 
 /**
  * POST /api/settings
- * Updates the platform level. Protected by Admin status.
- * Body: { level: number, adminSecret: string }
+ * Updates the platform level.
  */
 export async function POST(req: Request) {
     try {
         const { level, adminSecret } = await req.json();
 
-        // Simple protection using the same secret as verification for now
-        // A more robust way would be checking the user's is_admin status from session
+        // Still supporting secret for now as a fallback, but we'll add session check later
         if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -42,7 +39,7 @@ export async function POST(req: Request) {
         }
 
         await db.execute({
-            sql: "UPDATE settings SET level = ? WHERE id = 1",
+            sql: "UPDATE platform_state SET level = ? WHERE id = 1",
             args: [level]
         });
 

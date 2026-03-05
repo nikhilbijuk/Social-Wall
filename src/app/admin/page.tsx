@@ -24,15 +24,15 @@ export default function AdminPage() {
     }, [userProfile]);
 
     useEffect(() => {
-        if (activeTab === 'requests' && adminSecret) {
-            fetchVerifications();
-        } else if (activeTab === 'users' && adminSecret) {
-            fetchUsers();
+        // If we are an admin, we can fetch data without the secret (server now checks cookies)
+        if (userProfile?.is_admin === 1) {
+            if (activeTab === 'requests') fetchVerifications();
+            else if (activeTab === 'users') fetchUsers();
         }
-    }, [activeTab, adminSecret]);
+    }, [activeTab, userProfile?.is_admin]);
 
     const fetchVerifications = async () => {
-        const res = await fetch(`/api/admin/verifications?adminSecret=${adminSecret}`);
+        const res = await fetch(`/api/admin/verifications${adminSecret ? `?adminSecret=${adminSecret}` : ''}`);
         if (res.ok) {
             const data = await res.json();
             setVerificationRequests(data);
@@ -40,7 +40,7 @@ export default function AdminPage() {
     };
 
     const fetchUsers = async () => {
-        const res = await fetch(`/api/admin/users?adminSecret=${adminSecret}`);
+        const res = await fetch(`/api/admin/users${adminSecret ? `?adminSecret=${adminSecret}` : ''}`);
         if (res.ok) {
             const data = await res.json();
             setUsers(data);
