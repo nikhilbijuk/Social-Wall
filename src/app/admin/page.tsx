@@ -25,7 +25,7 @@ export default function AdminPage() {
 
     useEffect(() => {
         // If we are an admin, we can fetch data without the secret (server now checks cookies)
-        if (userProfile?.is_admin === 1) {
+        if (userProfile?.is_admin) {
             if (activeTab === 'requests') fetchVerifications();
             else if (activeTab === 'users') fetchUsers();
         }

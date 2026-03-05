@@ -139,9 +139,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         fetchPosts();
         fetchLeaderboard();
+
+        // Setup real-time SSE stream for new posts
+        const eventSource = new EventSource('/api/stream');
+
+        eventSource.onmessage = (event) => {
+            try {
+                const newPosts = JSON.parse(event.data);
+                if (Array.isArray(newPosts) && newPosts.length > 0) {
+                    setPosts(prev => {
+                        // Filter out duplicates (just in case)
+                        const existingIds = new Set(prev.map(p => p.id));
+                        const filteredNew = newPosts.filter(p => !existingIds.has(p.id));
+                        if (filteredNew.length === 0) return prev;
+
+                        // Append new messages to the end
+                        return [...prev, ...filteredNew];
+                    });
+                }
+            } catch (err) {
+                console.error("SSE Parse Error:", err);
+            }
+        };
+
+        eventSource.onerror = (err) => {
+            console.error("SSE Connection Error:", err);
+            eventSource.close();
+            // Optional: retry logic could go here
+        };
+
         const interval = setInterval(fetchLeaderboard, 30000); // Update leaderboard every 30s
-        return () => clearInterval(interval);
-    }, [fetchPosts, fetchLeaderboard]);
+
+        return () => {
+            eventSource.close();
+            clearInterval(interval);
+        };
+    }, [fetchLeaderboard]);
 
     const loadMorePosts = () => {
         if (posts.length > 0 && hasMore && !isLoading) {

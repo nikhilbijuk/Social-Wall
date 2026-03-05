@@ -48,19 +48,25 @@ async function migrate() {
         `);
         await db.execute("INSERT OR IGNORE INTO platform_state (id, level) VALUES (1, 0)");
 
-        // Optimized Leaderboard View
+        // Optimized Dynamic Leaderboard View
         console.log("Creating leaderboard view...");
         try {
             await db.execute("DROP VIEW IF EXISTS leaderboard");
             await db.execute(`
                 CREATE VIEW leaderboard AS
                 SELECT 
-                    id as anon_id,
-                    name,
-                    is_verified,
-                    (hearts * 3 + thumbs * 2 + posts) AS score
-                FROM users
-                WHERE name IS NOT NULL
+                    u.id as anon_id,
+                    u.name,
+                    u.is_verified,
+                    (
+                      COALESCE(SUM(p.likes_count), 0) * 3 + 
+                      COALESCE(SUM(p.thumbs_up_count), 0) * 2 + 
+                      COUNT(p.id)
+                    ) AS score
+                FROM users u
+                LEFT JOIN posts p ON u.id = p.user_id
+                WHERE u.name IS NOT NULL
+                GROUP BY u.id
                 ORDER BY score DESC
                 LIMIT 50
             `);
