@@ -5,6 +5,7 @@ import { useApp } from '@/context/AppContext';
 import GlassCard from '@/components/ui/GlassCard';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import NameModal from '@/components/ui/NameModal';
+import { EmojiBurst } from '@/components/ui/EmojiBurst';
 import { Send, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import { useUploadThing } from '@/lib/uploadthing';
 import { cn } from '@/lib/utils';
@@ -13,8 +14,24 @@ import { canPost, canView } from '@/lib/permissions';
 
 export default function RootPage() {
   const { posts, handleLike, handleThumbUp, isLoading, loadingProgress, hasMore, loadMorePosts, createPost,
-    anonId, userProfile, setUserProfile, showNameModal, setShowNameModal, pendingPost, setPendingPost, level } = useApp();
+    anonId, userProfile, setUserProfile, showNameModal, setShowNameModal, pendingPost, setPendingPost, level,
+    typingUsers, sendTypingStatus } = useApp();
   const [text, setText] = useState('');
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Send typing status
+  useEffect(() => {
+    if (text.trim()) {
+      sendTypingStatus(true);
+
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        sendTypingStatus(false);
+      }, 3000);
+    } else {
+      sendTypingStatus(false);
+    }
+  }, [text]);
 
   // File States
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -352,76 +369,90 @@ export default function RootPage() {
         <div ref={messagesEndRef} className="h-2 w-full shrink-0" />
       </div>
       {canUserPost ? (
-        <div className="bg-[#F0F2F5] p-2 md:p-3 px-3 md:px-4 flex items-end gap-2 md:gap-3 z-20 relative shrink-0 border-t border-gray-200">
-          <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*,video/*" className="hidden" />
+        <div className="z-20 relative">
+          {typingUsers.length > 0 && (
+            <div className="absolute -top-6 left-4 flex items-center gap-2">
+              <div className="flex gap-0.5">
+                <span className="w-1 h-1 bg-black/20 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-1 h-1 bg-black/20 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-1 h-1 bg-black/20 rounded-full animate-bounce" />
+              </div>
+              <span className="text-[10px] font-bold text-black/30 uppercase tracking-widest">
+                {typingUsers.length === 1 ? `${typingUsers[0]} is typing...` : `${typingUsers.length} people are typing...`}
+              </span>
+            </div>
+          )}
+          <div className="bg-[#F0F2F5] p-2 md:p-3 px-3 md:px-4 flex items-end gap-2 md:gap-3 shrink-0 border-t border-gray-200">
+            <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*,video/*" className="hidden" />
 
-          <div className="flex gap-1 pb-2 text-gray-500">
+            <div className="flex gap-1 pb-2 text-gray-500">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2 hover:bg-gray-200 rounded-full transition-colors relative"
+                disabled={isUploading}
+              >
+                <ImageIcon size={24} className={previewUrl ? "text-[#00A884]" : ""} />
+                {previewUrl && <div className="absolute top-1 right-1 w-2 h-2 bg-[#00A884] rounded-full border-2 border-[#F0F2F5]" />}
+              </button>
+            </div>
+
+            <div className="flex-1 bg-white rounded-2xl flex flex-col border border-white focus-within:border-gray-200 shadow-sm overflow-hidden mb-1 transition-all">
+              {previewUrl && (
+                <div className="p-2 bg-gray-50 border-b border-gray-100 relative group">
+                  <div className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 relative">
+                    {fileType === 'video' ? (
+                      <video src={previewUrl} className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                    )}
+                    {isUploading && (
+                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center backdrop-blur-[2px]">
+                        <span className="text-[11px] text-white font-black tracking-wider">{uploadProgress}%</span>
+                        {uploadSpeed && <span className="text-[8px] text-white/80 font-bold uppercase tracking-widest mt-0.5">{uploadSpeed}</span>}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={clearAttachment}
+                    className="absolute top-1 left-[84px] p-1 bg-white rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+              <textarea
+                placeholder="Type a message..."
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                className="w-full p-2.5 px-4 text-sm resize-none focus:outline-none bg-transparent min-h-[44px] max-h-[120px] scrollbar-hide"
+                rows={1}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = 'inherit';
+                  target.style.height = `${target.scrollHeight}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handlePost();
+                  }
+                }}
+              />
+            </div>
+
             <button
-              onClick={() => fileInputRef.current?.click()}
-              className="p-2 hover:bg-gray-200 rounded-full transition-colors relative"
-              disabled={isUploading}
+              onClick={handlePost}
+              disabled={isUploading || (!text.trim() && !uploadedFileUrl)}
+              className={cn(
+                "mb-1 p-3 rounded-full transition-all shadow-md active:scale-95",
+                isUploading || (!text.trim() && !uploadedFileUrl)
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
+                  : "bg-[#00A884] hover:bg-[#008f6f] text-white"
+              )}
             >
-              <ImageIcon size={24} className={previewUrl ? "text-[#00A884]" : ""} />
-              {previewUrl && <div className="absolute top-1 right-1 w-2 h-2 bg-[#00A884] rounded-full border-2 border-[#F0F2F5]" />}
+              {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} className="ml-0.5" />}
             </button>
           </div>
-
-          <div className="flex-1 bg-white rounded-2xl flex flex-col border border-white focus-within:border-gray-200 shadow-sm overflow-hidden mb-1 transition-all">
-            {previewUrl && (
-              <div className="p-2 bg-gray-50 border-b border-gray-100 relative group">
-                <div className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 relative">
-                  {fileType === 'video' ? (
-                    <video src={previewUrl} className="w-full h-full object-cover" />
-                  ) : (
-                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                  )}
-                  {isUploading && (
-                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center backdrop-blur-[2px]">
-                      <span className="text-[11px] text-white font-black tracking-wider">{uploadProgress}%</span>
-                      {uploadSpeed && <span className="text-[8px] text-white/80 font-bold uppercase tracking-widest mt-0.5">{uploadSpeed}</span>}
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={clearAttachment}
-                  className="absolute top-1 left-[84px] p-1 bg-white rounded-full shadow-md hover:bg-red-50 text-gray-500 hover:text-red-500 transition-all"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            )}
-            <textarea
-              placeholder="Type a message..."
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              className="w-full p-2.5 px-4 text-sm resize-none focus:outline-none bg-transparent min-h-[44px] max-h-[120px] scrollbar-hide"
-              rows={1}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                target.style.height = 'inherit';
-                target.style.height = `${target.scrollHeight}px`;
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handlePost();
-                }
-              }}
-            />
-          </div>
-
-          <button
-            onClick={handlePost}
-            disabled={isUploading || (!text.trim() && !uploadedFileUrl)}
-            className={cn(
-              "mb-1 p-3 rounded-full transition-all shadow-md active:scale-95",
-              isUploading || (!text.trim() && !uploadedFileUrl)
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
-                : "bg-[#00A884] hover:bg-[#008f6f] text-white"
-            )}
-          >
-            {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} className="ml-0.5" />}
-          </button>
         </div>
       ) : (
         <div className="bg-white/80 backdrop-blur-md p-4 text-center border-t border-gray-200 z-20 sticky bottom-0">

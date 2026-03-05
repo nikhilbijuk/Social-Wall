@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { getTypingUsers } from "../typing/route";
 
 export const dynamic = 'force-dynamic';
 
@@ -9,10 +10,20 @@ export async function GET() {
     const stream = new ReadableStream({
         async start(controller) {
             let lastTimestamp = Date.now();
+            let lastTypingUsersStr = "";
 
             const interval = setInterval(async () => {
                 try {
-                    // Fetch any posts created after the last check
+                    // 1. Handle Typing Status
+                    const typingUsers = getTypingUsers();
+                    const typingStr = JSON.stringify(typingUsers);
+
+                    if (typingStr !== lastTypingUsersStr) {
+                        controller.enqueue(encoder.encode(`event: typing\ndata: ${typingStr}\n\n`));
+                        lastTypingUsersStr = typingStr;
+                    }
+
+                    // 2. Handle New Posts
                     const result = await db.execute({
                         sql: `
                             SELECT p.*, u.name as authorName, u.is_verified, p.created_at as formatted_date,
@@ -36,9 +47,19 @@ export async function GET() {
                         }));
 
                         lastTimestamp = Math.max(...newPosts.map(p => p.timestamp as number));
-
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify(newPosts)}\n\n`));
                     }
+
+                    // 3. Handle Reactions
+                    const reactionResult = await db.execute({
+                        sql: "SELECT * FROM reactions_log WHERE timestamp > ? ORDER BY timestamp ASC",
+                        args: [lastTimestamp]
+                    });
+
+                    if (reactionResult.rows.length > 0) {
+                        controller.enqueue(encoder.encode(`event: reaction\ndata: ${JSON.stringify(reactionResult.rows)}\n\n`));
+                    }
+
                 } catch (error) {
                     console.error("SSE Stream Error:", error);
                 }

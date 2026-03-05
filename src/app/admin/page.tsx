@@ -274,7 +274,13 @@ export default function AdminPage() {
                             {users.map((user) => (
                                 <div key={user.id} className="p-3 bg-gray-50 rounded-xl border border-black/5 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className={cn("w-2 h-2 rounded-full", user.is_verified ? "bg-blue-500" : "bg-gray-300")} />
+                                        <div className="w-8 h-8 rounded-full overflow-hidden bg-white border border-black/5 shrink-0">
+                                            <img
+                                                src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${user.name}`}
+                                                alt="Avatar"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
                                         <div>
                                             <span className="text-xs font-black uppercase tracking-tighter">{user.name}</span>
                                             <div className="flex gap-2">

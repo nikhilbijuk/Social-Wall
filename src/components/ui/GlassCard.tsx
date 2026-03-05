@@ -32,6 +32,7 @@ interface GlassCardProps extends HTMLMotionProps<"div"> {
     createdAt?: string;
     timestamp?: number;
     edited?: boolean;
+    is_viral?: boolean;
 }
 
 const GlassCard: React.FC<GlassCardProps> = ({
@@ -53,6 +54,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
     createdAt,
     timestamp,
     edited,
+    is_viral,
     ...props
 }) => {
     const { userProfile } = useApp();
@@ -125,15 +127,27 @@ const GlassCard: React.FC<GlassCardProps> = ({
                     <span className="text-[8px] font-black text-red-500 uppercase tracking-tighter">⚠ Deepfake</span>
                 </div>
             )}
-            {/* Tag/Label/Author */}
-            {(tag || label || authorName) && (
-                <div className="mb-1 flex items-center justify-between">
+            {/* Header: Avatar, Name, Stats */}
+            <div className="mb-1 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-100 border border-black/5 shrink-0">
+                        <img
+                            src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${authorName || 'Guest'}`}
+                            alt="Avatar"
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
                     <div className="flex items-center gap-1.5">
                         <span className="text-[10px] font-bold text-[#00A884] uppercase tracking-wide">
-                            {authorName || tag || label}
+                            {authorName || tag || label || 'Guest'}
                         </span>
                         {is_verified === 1 && (
                             <span className="text-blue-500 text-[10px] font-black" title="Verified">✔</span>
+                        )}
+                        {is_viral && (
+                            <span className="bg-orange-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full animate-pulse flex items-center gap-1 shadow-sm">
+                                🔥 VIRAL
+                            </span>
                         )}
                         {edited && (
                             <span className="text-[8px] text-black/30 font-medium lowercase">
@@ -159,15 +173,15 @@ const GlassCard: React.FC<GlassCardProps> = ({
                             </div>
                         )}
                     </div>
-                    {(createdAt || timestamp) && (
-                        <div className="flex items-center gap-1.5 opacity-70">
-                            <span className="text-[10px] text-gray-500 font-mono tracking-tight font-medium">
-                                {createdAt ? dayjs(createdAt).fromNow() : dayjs(Number(timestamp)).fromNow()}
-                            </span>
-                        </div>
-                    )}
                 </div>
-            )}
+                {(createdAt || timestamp) && (
+                    <div className="flex items-center gap-1.5 opacity-70">
+                        <span className="text-[10px] text-gray-500 font-mono tracking-tight font-medium">
+                            {createdAt ? dayjs(createdAt).fromNow() : dayjs(Number(timestamp)).fromNow()}
+                        </span>
+                    </div>
+                )}
+            </div>
 
             {/* Content Rendering */}
             <div className="flex flex-col gap-2 relative">

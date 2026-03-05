@@ -28,6 +28,9 @@ interface AppContextType {
     claimSyncCode: (code: string) => Promise<boolean>;
     showVerificationModal: boolean;
     setShowVerificationModal: (v: boolean) => void;
+    typingUsers: string[];
+    sendTypingStatus: (isTyping: boolean) => void;
+    burstTrigger: { type: string, count: number } | null;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -44,6 +47,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const [pendingPost, setPendingPost] = useState<any | null>(null);
     const [level, setLevel] = useState(0);
     const [showVerificationModal, setShowVerificationModal] = useState(false);
+    const [typingUsers, setTypingUsers] = useState<string[]>([]);
+    const [burstTrigger, setBurstTrigger] = useState<{ type: string, count: number } | null>(null);
 
     // Initialize anonymous ID and user profile from localStorage/API
     useEffect(() => {
@@ -143,6 +148,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Setup real-time SSE stream for new posts
         const eventSource = new EventSource('/api/stream');
 
+        eventSource.addEventListener('typing', (event) => {
+            try {
+                const names = JSON.parse(event.data);
+                if (Array.isArray(names)) {
+                    // Filter out current user's name
+                    const otherTyping = names.filter(n => n !== userProfile?.name);
+                    setTypingUsers(otherTyping);
+                }
+            } catch (err) {
+                console.error("SSE Typing Error:", err);
+            }
+        });
+
+        eventSource.addEventListener('reaction', (event) => {
+            try {
+                const reactions = JSON.parse(event.data);
+                if (Array.isArray(reactions) && reactions.length > 0) {
+                    const latest = reactions[reactions.length - 1];
+                    setBurstTrigger({ type: latest.type, count: reactions.length });
+
+                    // Reset trigger after a bit
+                    setTimeout(() => setBurstTrigger(null), 500);
+
+                    // Update local post counts if they are visible
+                    setPosts(prev => prev.map(p => {
+                        const count = reactions.filter((r: any) => r.post_id === p.id).length;
+                        if (count > 0) {
+                            return {
+                                ...p,
+                                likes_count: (latest.type === 'like' ? (p.likes_count || 0) + count : p.likes_count),
+                                thumbs_up_count: (latest.type === 'thumb' ? (p.thumbs_up_count || 0) + count : p.thumbs_up_count),
+                                is_viral: (p.likes_count || 0) + (p.thumbs_up_count || 0) + count >= 10 // Simple viral check
+                            };
+                        }
+                        return p;
+                    }));
+                }
+            } catch (err) {
+                console.error("SSE Reaction Error:", err);
+            }
+        });
+
         eventSource.onmessage = (event) => {
             try {
                 const newPosts = JSON.parse(event.data);
@@ -174,7 +221,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             eventSource.close();
             clearInterval(interval);
         };
-    }, [fetchLeaderboard]);
+    }, [fetchLeaderboard, userProfile?.name]);
+
+    const sendTypingStatus = async (isTyping: boolean) => {
+        if (!userProfile?.name || !anonId) return;
+        try {
+            await fetch('/api/typing', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: anonId, name: userProfile.name, isTyping })
+            });
+        } catch (err) {
+            console.error("Failed to send typing status", err);
+        }
+    };
 
     const loadMorePosts = () => {
         if (posts.length > 0 && hasMore && !isLoading) {
@@ -264,7 +324,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             anonId, userProfile, setUserProfile, showNameModal, setShowNameModal,
             pendingPost, setPendingPost, level, fetchSettings,
             generateSyncCode, claimSyncCode,
-            showVerificationModal, setShowVerificationModal
+            showVerificationModal, setShowVerificationModal,
+            typingUsers, sendTypingStatus,
+            burstTrigger
         }}>
             {children}
         </AppContext.Provider>

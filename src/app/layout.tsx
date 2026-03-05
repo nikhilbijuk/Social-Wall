@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { AppProvider } from '@/context/AppContext';
 import { Header, VerificationModalWrapper } from '@/components/ui/Header';
+import { EmojiBurst } from '@/components/ui/EmojiBurst';
 
 const inter = Inter({
     variable: "--font-sans",
@@ -27,6 +28,7 @@ export default function RootLayout({
         <html lang="en">
             <body className={cn(inter.className, "bg-[#EFE7DD] flex flex-col min-h-screen")}>
                 <AppProvider>
+                    <EmojiBurst />
                     <Header />
                     <main className="flex-1 w-full relative">
                         {children}

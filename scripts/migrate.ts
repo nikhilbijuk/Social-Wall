@@ -48,6 +48,17 @@ async function migrate() {
         `);
         await db.execute("INSERT OR IGNORE INTO platform_state (id, level) VALUES (1, 0)");
 
+        // Reactions Log for real-time bursts
+        console.log("Creating reactions_log table...");
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS reactions_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                post_id TEXT NOT NULL,
+                type TEXT NOT NULL,
+                timestamp INTEGER NOT NULL
+            )
+        `);
+
         // Optimized Dynamic Leaderboard View
         console.log("Creating leaderboard view...");
         try {
