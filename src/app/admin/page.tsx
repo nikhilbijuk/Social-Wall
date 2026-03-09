@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import Cookies from 'js-cookie';
 
 export default function AdminPage() {
-    const { userProfile, level, fetchSettings, posts } = useApp();
+    const { userProfile, level, fetchSettings, posts, setPosts } = useApp();
     const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'posts' | 'requests'>('settings');
     const [adminSecret, setAdminSecret] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
@@ -113,15 +113,19 @@ export default function AdminPage() {
     };
 
     const togglePostModeration = async (postId: string, field: 'is_deepfake' | 'is_blur', value: number) => {
+        // Optimistic UI Update
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, [field]: value } : p));
+
         try {
-            const res = await fetch(`/api/admin/moderate-post`, {
+            await fetch(`/api/admin/moderate-post`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ postId, field, value, adminSecret })
             });
-            if (res.ok) { window.location.reload(); }
         } catch (e) {
             console.error(e);
+            // Revert on error
+            setPosts(prev => prev.map(p => p.id === postId ? { ...p, [field]: value === 1 ? 0 : 1 } : p));
         }
     };
 
@@ -287,7 +291,10 @@ export default function AdminPage() {
                                 <div key={post.id} className="p-3 bg-gray-50 rounded-xl border border-black/5 flex items-center justify-between gap-4 transition-all hover:bg-white hover:shadow-sm">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <p className="text-[11px] text-black/40 font-bold uppercase truncate">{post.authorName || 'Guest'}</p>
+                                            <p className="text-[11px] text-black/40 font-bold uppercase truncate">
+                                                {post.authorName || 'Guest'}
+                                                {post.authorName && <span className="normal-case opacity-50 ml-1">(@{String(post.authorName).replace(/\s+/g, '_')})</span>}
+                                            </p>
                                             {post.media_type && <span className="text-[8px] bg-gray-800 text-white px-1.5 rounded uppercase font-black">{post.media_type}</span>}
                                         </div>
                                         <p className="text-xs line-clamp-1 opacity-70 italic-none">{post.content || 'Media Content'}</p>
@@ -336,7 +343,8 @@ export default function AdminPage() {
                                         </div>
                                         <div>
                                             <span className="text-xs font-black uppercase tracking-tighter">{user.name}</span>
-                                            <div className="flex gap-2">
+                                            <span className="ml-2 text-[10px] font-bold text-gray-400 lowercase">@{String(user.name).replace(/\s+/g, '_')}</span>
+                                            <div className="flex gap-2 mt-0.5">
                                                 {user.is_verified ? <span className="text-[8px] text-blue-500 font-bold uppercase tracking-widest">Verified</span> : null}
                                                 {user.is_admin ? <span className="text-[8px] text-red-500 font-bold uppercase tracking-widest">Admin</span> : null}
                                             </div>

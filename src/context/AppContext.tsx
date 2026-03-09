@@ -31,6 +31,7 @@ interface AppContextType {
     typingUsers: string[];
     sendTypingStatus: (isTyping: boolean) => void;
     burstTrigger: { type: string, count: number } | null;
+    setPosts: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -326,7 +327,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             generateSyncCode, claimSyncCode,
             showVerificationModal, setShowVerificationModal,
             typingUsers, sendTypingStatus,
-            burstTrigger
+            burstTrigger, setPosts
         }}>
             {children}
         </AppContext.Provider>
