@@ -296,22 +296,22 @@ export default function AdminPage() {
                                         <button
                                             onClick={() => togglePostModeration(post.id, 'is_deepfake', post.is_deepfake ? 0 : 1)}
                                             className={cn(
-                                                "p-2 rounded-lg transition-colors border",
-                                                post.is_deepfake ? "bg-red-50 border-red-200 text-red-500" : "bg-white border-black/10 text-black/20"
+                                                "flex items-center gap-2 px-3 py-1.5 rounded-full transition-all border text-[10px] font-black uppercase tracking-widest",
+                                                post.is_deepfake ? "bg-red-500 text-white border-red-600 shadow-md scale-105" : "bg-white border-black/10 text-black/40 hover:bg-red-50 hover:text-red-500 hover:border-red-200"
                                             )}
                                             title="Mark as Deepfake"
                                         >
-                                            <AlertTriangle size={14} />
+                                            <AlertTriangle size={14} /> {post.is_deepfake ? "Deepfake" : "Flag AI"}
                                         </button>
                                         <button
                                             onClick={() => togglePostModeration(post.id, 'is_blur', post.is_blur ? 0 : 1)}
                                             className={cn(
-                                                "p-2 rounded-lg transition-colors border",
-                                                post.is_blur ? "bg-orange-50 border-orange-200 text-orange-500" : "bg-white border-black/10 text-black/20"
+                                                "flex items-center gap-2 px-3 py-1.5 rounded-full transition-all border text-[10px] font-black uppercase tracking-widest",
+                                                post.is_blur ? "bg-orange-500 text-white border-orange-600 shadow-md scale-105" : "bg-white border-black/10 text-black/40 hover:bg-orange-50 hover:text-orange-500 hover:border-orange-200"
                                             )}
                                             title="Blur Content"
                                         >
-                                            <EyeOff size={14} />
+                                            <EyeOff size={14} /> {post.is_blur ? "Blurred" : "Blur"}
                                         </button>
                                     </div>
                                 </div>

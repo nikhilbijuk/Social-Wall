@@ -8,11 +8,16 @@ export const dynamic = 'force-dynamic';
  * Updates post flags (is_deepfake, is_blur).
  * Body: { postId: string, field: string, value: any, adminSecret: string }
  */
+import { cookies } from "next/headers";
+
 export async function POST(req: Request) {
     try {
         const { postId, field, value, adminSecret } = await req.json();
 
-        if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
+        const cookieStore = await cookies();
+        const hasAdminCookie = cookieStore.get('admin')?.value === 'true';
+
+        if (!hasAdminCookie && (!adminSecret || adminSecret !== process.env.ADMIN_SECRET)) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
