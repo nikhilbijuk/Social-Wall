@@ -43,6 +43,25 @@ export async function createPostAction(formData: {
             await db.execute("UPDATE users SET last_post_time = CURRENT_TIMESTAMP WHERE id = ?", [userId]);
         }
 
+        // Process tags/mentions
+        const mentions = content?.match(/@([a-zA-Z0-9_]+)/g) || [];
+        if (mentions.length > 0) {
+            // Remove the '@' from each match
+            const usernamesList = mentions.map(m => m.slice(1));
+
+            const placeholders = usernamesList.map(() => '?').join(',');
+            // Match users by replacing space with underscore in their names
+            const query = `SELECT id FROM users WHERE REPLACE(name, ' ', '_') IN (${placeholders})`;
+            const tagUsersResult = await db.execute(query, usernamesList);
+
+            for (const tagUser of tagUsersResult.rows) {
+                await db.execute(
+                    `INSERT INTO post_tags (post_id, user_id, created_at) VALUES (?, ?, ?)`,
+                    [id, tagUser.id, timestamp]
+                );
+            }
+        }
+
         revalidatePath("/dashboard/explore");
         return { success: true, id };
     } catch (error: any) {

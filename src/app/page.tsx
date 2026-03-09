@@ -17,6 +17,8 @@ export default function RootPage() {
     anonId, userProfile, setUserProfile, showNameModal, setShowNameModal, pendingPost, setPendingPost, level,
     typingUsers, sendTypingStatus } = useApp();
   const [text, setText] = useState('');
+  const [tagSearchTerm, setTagSearchTerm] = useState<string | null>(null);
+  const [tagUsers, setTagUsers] = useState<any[]>([]);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Send typing status
@@ -32,6 +34,20 @@ export default function RootPage() {
       sendTypingStatus(false);
     }
   }, [text]);
+
+  // Fetch Tags
+  useEffect(() => {
+    if (!tagSearchTerm) {
+      setTagUsers([]);
+      return;
+    }
+    const delayDebounceFn = setTimeout(() => {
+      fetch(`/api/users/search?q=${tagSearchTerm}`)
+        .then(res => res.json())
+        .then(data => setTagUsers(Array.isArray(data) ? data : []));
+    }, 200);
+    return () => clearTimeout(delayDebounceFn);
+  }, [tagSearchTerm]);
 
   // File States
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -396,7 +412,33 @@ export default function RootPage() {
               </button>
             </div>
 
-            <div className="flex-1 bg-white rounded-2xl flex flex-col border border-white focus-within:border-gray-200 shadow-sm overflow-hidden mb-1 transition-all">
+            <div className="flex-1 bg-white rounded-2xl flex flex-col border border-white focus-within:border-gray-200 shadow-sm overflow-visible mb-1 transition-all relative">
+              {tagUsers.length > 0 && (
+                <div className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden flex flex-col z-50">
+                  <div className="px-3 py-1.5 bg-gray-50 border-b border-gray-100 text-[10px] font-black uppercase tracking-widest text-black/40">
+                    Mention User
+                  </div>
+                  {tagUsers.map(u => (
+                    <button
+                      key={u.id}
+                      onClick={() => {
+                        const newText = text.replace(/@[a-zA-Z0-9_]+$/, `@${u.tag} `);
+                        setText(newText);
+                        setTagSearchTerm(null);
+                        setTagUsers([]);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <div className="w-5 h-5 rounded-full overflow-hidden shrink-0">
+                        <img src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${u.name}`} alt="" />
+                      </div>
+                      <span className="text-xs font-bold truncate text-gray-700">
+                        {u.name} {u.is_verified && <span className="text-blue-500 text-[10px]">✔</span>}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
               {previewUrl && (
                 <div className="p-2 bg-gray-50 border-b border-gray-100 relative group">
                   <div className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 relative">
@@ -423,7 +465,19 @@ export default function RootPage() {
               <textarea
                 placeholder="Type a message..."
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={(e) => {
+                  const newText = e.target.value;
+                  setText(newText);
+
+                  // Extract mentions at the end of the current typing cursor
+                  // A simple regex approach to match @ followed by letters/numbers at the very end
+                  const match = newText.match(/@([a-zA-Z0-9_]*)$/);
+                  if (match) {
+                    setTagSearchTerm(match[1]);
+                  } else {
+                    setTagSearchTerm(null);
+                  }
+                }}
                 className="w-full p-2.5 px-4 text-sm resize-none focus:outline-none bg-transparent min-h-[44px] max-h-[120px] scrollbar-hide"
                 rows={1}
                 onInput={(e) => {

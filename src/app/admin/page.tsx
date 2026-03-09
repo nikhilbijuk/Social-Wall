@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { redirect } from 'next/navigation';
-import { Shield, Users, MessageSquare, Settings, CheckCircle2, AlertTriangle, EyeOff, Check, X, ExternalLink, UserCheck, Loader2 } from 'lucide-react';
+import { Shield, Users, MessageSquare, Settings, CheckCircle2, AlertTriangle, EyeOff, Check, X, ExternalLink, UserCheck, Loader2, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Cookies from 'js-cookie';
 
 export default function AdminPage() {
     const { userProfile, level, fetchSettings, posts } = useApp();
@@ -14,24 +15,58 @@ export default function AdminPage() {
     const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
 
-    // Initial check for is_admin - only redirect if we ARE loaded and NOT admin
+    // Auth state modifications
+    const [isAdminState, setIsAdminState] = useState(false);
+    const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
+    const [loginError, setLoginError] = useState('');
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
+
     useEffect(() => {
-        // We only redirect if we have a profile and we've confirmed they are not an admin
-        // If userProfile is null, we might still be loading, so we wait.
-        if (userProfile && userProfile.is_admin === 0) {
-            redirect("/");
+        // Check if cookie exists or user is admin via DB
+        const hasAdminCookie = Cookies.get('admin') === 'true';
+        if (hasAdminCookie || userProfile?.is_admin === 1) {
+            setIsAdminState(true);
+        } else if (userProfile !== null && userProfile?.is_admin === 0) {
+            // Not admin and no cookie
+            setIsAdminState(false);
         }
+        setIsCheckingAdmin(false);
     }, [userProfile]);
 
     useEffect(() => {
-        // If we are an admin, we can fetch data without the secret (server now checks cookies)
-        if (userProfile?.is_admin) {
+        if (isAdminState) {
             if (activeTab === 'requests') fetchVerifications();
             else if (activeTab === 'users') fetchUsers();
         }
-    }, [activeTab, userProfile?.is_admin]);
+    }, [activeTab, isAdminState]);
+
+    const handleUnlockAdmin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoggingIn(true);
+        setLoginError('');
+        try {
+            const res = await fetch("/api/admin/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ secret: adminSecret })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                Cookies.set('admin', 'true', { path: '/' });
+                setIsAdminState(true);
+            } else {
+                setLoginError(data.error || "Incorrect secret");
+            }
+        } catch (err) {
+            setLoginError("Failed to connect to server");
+        } finally {
+            setIsLoggingIn(false);
+        }
+    };
 
     const fetchVerifications = async () => {
+        // Now backend can just trust cookie or use secret as fallback, but we'll still pass it if needed
         const res = await fetch(`/api/admin/verifications${adminSecret ? `?adminSecret=${adminSecret}` : ''}`);
         if (res.ok) {
             const data = await res.json();
@@ -60,10 +95,6 @@ export default function AdminPage() {
     };
 
     const updateLevel = async (newLevel: number) => {
-        if (!adminSecret) {
-            alert("Please enter the Admin Secret first.");
-            return;
-        }
         setIsUpdating(true);
         try {
             const res = await fetch('/api/settings', {
@@ -82,8 +113,6 @@ export default function AdminPage() {
     };
 
     const togglePostModeration = async (postId: string, field: 'is_deepfake' | 'is_blur', value: number) => {
-        if (!adminSecret) return alert("Secret required");
-
         try {
             const res = await fetch(`/api/admin/moderate-post`, {
                 method: 'POST',
@@ -96,12 +125,46 @@ export default function AdminPage() {
         }
     };
 
-    if (!userProfile || !userProfile.is_admin) {
+    if (isCheckingAdmin) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-[#EFE7DD] p-10 text-center">
                 <Loader2 className="animate-spin text-black/20 mb-4" size={40} />
                 <h2 className="text-sm font-black uppercase tracking-widest opacity-20">Verifying Credentials...</h2>
-                <p className="text-[10px] font-bold text-black/40 uppercase tracking-widest mt-2">If you are an admin, please wait a moment.</p>
+            </div>
+        );
+    }
+
+    if (!isAdminState) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-[#EFE7DD] p-6 text-center">
+                <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-white mb-6 shadow-xl">
+                    <Lock size={32} />
+                </div>
+                <h1 className="text-2xl font-black uppercase tracking-tighter mb-2">Restricted Area</h1>
+                <p className="text-xs font-bold text-black/40 uppercase tracking-widest mb-8">Platform Moderation Hub</p>
+
+                <form onSubmit={handleUnlockAdmin} className="w-full max-w-sm flex flex-col gap-4">
+                    <input
+                        type="password"
+                        placeholder="Enter Admin Secret"
+                        value={adminSecret}
+                        onChange={(e) => setAdminSecret(e.target.value)}
+                        className="w-full px-4 py-3 text-center text-sm font-bold tracking-widest bg-white rounded-xl border-2 border-transparent focus:border-black outline-none transition-all shadow-sm disabled:opacity-50"
+                        disabled={isLoggingIn}
+                    />
+                    {loginError && <p className="text-red-500 text-xs font-bold uppercase tracking-widest">{loginError}</p>}
+                    <button
+                        type="submit"
+                        disabled={isLoggingIn || !adminSecret}
+                        className={cn(
+                            "w-full py-3 rounded-xl font-black uppercase tracking-widest transition-all",
+                            isLoggingIn || !adminSecret ? "bg-black/10 text-black/40" : "bg-black text-white hover:scale-[1.02] shadow-xl"
+                        )}
+                    >
+                        {isLoggingIn ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Unlock"}
+                    </button>
+                    <button type="button" onClick={() => redirect("/")} className="text-[10px] font-bold text-black/40 uppercase tracking-widest mt-4 hover:text-black">Return Home</button>
+                </form>
             </div>
         );
     }
@@ -117,16 +180,6 @@ export default function AdminPage() {
                         <h1 className="text-xl font-black uppercase tracking-tighter">Command Center</h1>
                         <p className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Platform Moderation Hub</p>
                     </div>
-                </div>
-
-                <div className="flex gap-2">
-                    <input
-                        type="password"
-                        placeholder="Admin Secret Key"
-                        value={adminSecret}
-                        onChange={(e) => setAdminSecret(e.target.value)}
-                        className="px-3 py-2 text-xs rounded-lg border border-black/10 focus:outline-none focus:ring-2 focus:ring-black/5"
-                    />
                 </div>
             </div>
 

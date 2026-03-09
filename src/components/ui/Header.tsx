@@ -57,17 +57,19 @@ export function Header() {
                 <div className="flex items-center gap-2">
                     {userProfile?.name && (
                         <div className="flex items-center gap-2 pr-3 pl-1.5 py-1 bg-gray-50 rounded-full border border-gray-100 group">
-                            <div className="w-6 h-6 rounded-full overflow-hidden bg-white border border-black/5 shrink-0">
-                                <img
-                                    src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${userProfile.name}`}
-                                    alt="Profile"
-                                    className="w-full h-full object-cover"
-                                />
-                            </div>
-                            <span className="text-xs font-black uppercase tracking-tighter text-black/60">{userProfile.name}</span>
-                            {userProfile.is_verified ? (
-                                <span className="text-blue-500 text-[10px]" title="Verified">✔</span>
-                            ) : null}
+                            <Link href={`/profile?id=${userProfile.id}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                                <div className="w-6 h-6 rounded-full overflow-hidden bg-white border border-black/5 shrink-0">
+                                    <img
+                                        src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${userProfile.name}`}
+                                        alt="Profile"
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                                <span className="text-xs font-black uppercase tracking-tighter text-black/60">{userProfile.name}</span>
+                                {userProfile.is_verified ? (
+                                    <span className="text-blue-500 text-[10px]" title="Verified">✔</span>
+                                ) : null}
+                            </Link>
                             <button
                                 onClick={handleSyncRequest}
                                 disabled={isSyncing}

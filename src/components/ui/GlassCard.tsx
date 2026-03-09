@@ -5,6 +5,7 @@ import { cn } from '../../lib/utils';
 import { motion, type HTMLMotionProps } from 'framer-motion';
 import { Play, CheckCircle2, X, Lock, AlertTriangle, EyeOff } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useApp } from '@/context/AppContext';
@@ -264,9 +265,19 @@ const GlassCard: React.FC<GlassCardProps> = ({
                         )}
 
                         {content && (
-                            <p className="text-sm leading-relaxed text-[#111B21] whitespace-pre-wrap font-sans">
-                                {content}
-                            </p>
+                            <div className="text-sm leading-relaxed text-[#111B21] whitespace-pre-wrap font-sans">
+                                {content.split(/(@[a-zA-Z0-9_]+)/g).map((part, i) => {
+                                    if (part.startsWith('@') && part.length > 1) {
+                                        const username = part.slice(1);
+                                        return (
+                                            <Link key={i} href={`/profile?tag=${username}`} className="font-bold text-[#00A884] hover:underline" onClick={(e) => e.stopPropagation()}>
+                                                {part}
+                                            </Link>
+                                        );
+                                    }
+                                    return <span key={i}>{part}</span>;
+                                })}
+                            </div>
                         )}
                     </>
                 )}
