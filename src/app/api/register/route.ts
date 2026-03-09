@@ -48,7 +48,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "anonId and name are required" }, { status: 400 });
         }
 
-        const trimmedName = name.trim();
+        const trimmedName = name.trim().replace(/\s+/g, '_');
 
         if (trimmedName.length < 2 || trimmedName.length > 24) {
             return NextResponse.json({ error: "Name must be between 2 and 24 characters" }, { status: 400 });

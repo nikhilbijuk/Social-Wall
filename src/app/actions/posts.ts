@@ -51,7 +51,7 @@ export async function createPostAction(formData: {
 
             const placeholders = usernamesList.map(() => '?').join(',');
             // Match users by replacing space with underscore in their names
-            const query = `SELECT id FROM users WHERE REPLACE(name, ' ', '_') IN (${placeholders})`;
+            const query = `SELECT id FROM users WHERE name IN (${placeholders})`;
             const tagUsersResult = await db.execute(query, usernamesList);
 
             for (const tagUser of tagUsersResult.rows) {

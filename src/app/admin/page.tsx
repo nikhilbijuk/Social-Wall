@@ -342,8 +342,7 @@ export default function AdminPage() {
                                             />
                                         </div>
                                         <div>
-                                            <span className="text-xs font-black uppercase tracking-tighter">{user.name}</span>
-                                            <span className="ml-2 text-[10px] font-bold text-gray-400 lowercase">@{String(user.name).replace(/\s+/g, '_')}</span>
+                                            <span className="text-xs font-black uppercase tracking-tighter">@{user.name}</span>
                                             <div className="flex gap-2 mt-0.5">
                                                 {user.is_verified ? <span className="text-[8px] text-blue-500 font-bold uppercase tracking-widest">Verified</span> : null}
                                                 {user.is_admin ? <span className="text-[8px] text-red-500 font-bold uppercase tracking-widest">Admin</span> : null}

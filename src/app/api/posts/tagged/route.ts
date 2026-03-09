@@ -20,7 +20,7 @@ export async function GET(req: Request) {
             JOIN post_tags pt ON p.id = pt.post_id
             JOIN users tu ON pt.user_id = tu.id
             LEFT JOIN users u ON p.user_id = u.id
-            WHERE REPLACE(tu.name, ' ', '_') = ? 
+            WHERE tu.name = ? 
                OR tu.id = ?
             ORDER BY p.timestamp DESC
             LIMIT 50

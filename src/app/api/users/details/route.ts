@@ -20,7 +20,7 @@ export async function GET(req: Request) {
             query = "SELECT id, name, is_verified, role FROM users WHERE id = ?";
             args = [id];
         } else if (tag) {
-            query = "SELECT id, name, is_verified, role FROM users WHERE REPLACE(name, ' ', '_') = ?";
+            query = "SELECT id, name, is_verified, role FROM users WHERE name = ?";
             args = [tag];
         }
 

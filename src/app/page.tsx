@@ -422,7 +422,7 @@ export default function RootPage() {
                     <button
                       key={u.id}
                       onClick={() => {
-                        const newText = text.replace(/@[a-zA-Z0-9_]+$/, `@${u.tag} `);
+                        const newText = text.replace(/@[a-zA-Z0-9_]+$/, `@${u.name} `);
                         setText(newText);
                         setTagSearchTerm(null);
                         setTagUsers([]);

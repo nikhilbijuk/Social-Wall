@@ -17,7 +17,7 @@ export async function GET(req: Request) {
             });
         } else {
             result = await db.execute({
-                sql: "SELECT id, name, is_verified FROM users WHERE REPLACE(name, ' ', '_') LIKE ? LIMIT 5",
+                sql: "SELECT id, name, is_verified FROM users WHERE name LIKE ? LIMIT 5",
                 args: [`${query}%`]
             });
         }
