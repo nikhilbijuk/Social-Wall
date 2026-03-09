@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import GlassCard from '@/components/ui/GlassCard';
@@ -8,7 +8,7 @@ import { Loader2, Image as ImageIcon, Tag as TagIcon, ArrowLeft } from 'lucide-r
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
-export default function ProfilePage() {
+function ProfileContent() {
     const searchParams = useSearchParams();
     const tag = searchParams.get('tag');
     const id = searchParams.get('id');
@@ -156,5 +156,18 @@ export default function ProfilePage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function ProfilePage() {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center">
+                <Loader2 className="animate-spin text-black/20 mb-4" size={40} />
+                <h2 className="text-sm font-black uppercase tracking-widest opacity-20">Loading Profile...</h2>
+            </div>
+        }>
+            <ProfileContent />
+        </Suspense>
     );
 }
