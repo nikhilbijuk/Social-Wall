@@ -365,14 +365,12 @@ export default function RootPage() {
           </div>
         )}
 
-        {/* The Engagement Stack: Pulse (Priority) -> Since -> INPUT -> Trending -> Spotlight */}
         <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="flex flex-col gap-6 w-full max-w-4xl mx-auto pt-4"
+            className="flex flex-col gap-6 w-full max-w-4xl mx-auto pt-6 px-4 sm:px-0"
         >
-            <LivePromptCta />
             <SinceYouWereAway />
             
             {/* Input Box - Rise softened with better padding */}
@@ -437,7 +435,7 @@ export default function RootPage() {
             <SpotlightCard />
         </motion.div>
 
-        <div className="max-w-4xl mx-auto w-full flex flex-col gap-6 mt-4 pb-20">
+        <div className="max-w-4xl mx-auto w-full flex flex-col gap-6 mt-4 pb-12 px-4 sm:px-0">
           {posts.map((post) => (
             <div key={post.id} className={cn(
               "flex flex-col gap-1 max-w-[90%] md:max-w-[85%]",
@@ -470,6 +468,10 @@ export default function RootPage() {
               </div>
             </div>
           ))}
+          
+          <div className="mt-4">
+             <LivePromptCta />
+          </div>
         </div>
 
         <div ref={messagesEndRef} className="h-2 w-full shrink-0" />

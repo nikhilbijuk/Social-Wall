@@ -9,6 +9,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, message: "No migration needed" });
     }
 
+    // Transfer roles and flags (is_admin, is_trusted, is_verified)
+    const oldUserResult = await db.execute({
+      sql: "SELECT role, is_admin, is_verified, is_trusted FROM users WHERE id = ?",
+      args: [oldId],
+    });
+
+    if (oldUserResult.rows.length > 0) {
+      const oldUser = oldUserResult.rows[0];
+      await db.execute({
+        sql: `UPDATE users SET 
+                role = CASE WHEN ? = 'admin' THEN 'admin' ELSE role END,
+                is_admin = MAX(is_admin, ?),
+                is_verified = MAX(is_verified, ?),
+                is_trusted = MAX(is_trusted, ?)
+              WHERE id = ?`,
+        args: [oldUser.role, oldUser.is_admin, oldUser.is_verified, oldUser.is_trusted, newId],
+      });
+    }
+
     // Migrate posts
     const postResult = await db.execute({
       sql: "UPDATE posts SET user_id = ? WHERE user_id = ?",
