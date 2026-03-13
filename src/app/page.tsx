@@ -365,19 +365,19 @@ export default function RootPage() {
           </div>
         )}
 
-        {/* The Viral Stack: Since -> Pulse -> INPUT (High priority) -> Trending -> Spotlight */}
+        {/* The Engagement Stack: Pulse (Priority) -> Since -> INPUT -> Trending -> Spotlight */}
         <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="flex flex-col gap-6 w-full max-w-4xl mx-auto pt-2"
+            className="flex flex-col gap-6 w-full max-w-4xl mx-auto pt-4"
         >
-            <SinceYouWereAway />
             <LivePromptCta />
+            <SinceYouWereAway />
             
-            {/* Input Box Moved Here for Immediate Action */}
-            <div className="bg-white/40 backdrop-blur-xl border border-white/40 rounded-3xl p-4 shadow-xl mb-2">
-                <div className="flex items-center gap-3 mb-3 px-1">
+            {/* Input Box - Rise softened with better padding */}
+            <div className="bg-white/40 backdrop-blur-xl border border-white/40 rounded-3xl p-5 shadow-xl mb-4">
+                <div className="flex items-center gap-3 mb-4 px-1">
                   <div className="w-8 h-8 rounded-full overflow-hidden bg-white/50 border border-white/20">
                     <img src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${userProfile?.name || 'Guest'}`} alt="" />
                   </div>
@@ -389,13 +389,13 @@ export default function RootPage() {
                       {!userProfile?.is_trusted && userProfile?.name && (
                         <button 
                           onClick={() => import('next-auth/react').then(m => m.signIn('google'))}
-                          className="text-[8px] font-bold uppercase tracking-widest text-black/30 hover:text-[#00A884] transition-colors"
+                          className="text-[8px] font-bold uppercase tracking-widest text-[#00A884] hover:underline cursor-pointer"
                         >
-                          (Link Google ✨)
+                          (Verify with Google ✨)
                         </button>
                       )}
                     </div>
-                    <span className="text-[9px] font-medium text-black/40">Shared inside class only</span>
+                    <span className="text-[9px] font-medium text-black/40">Visible to class stream</span>
                   </div>
                 </div>
 

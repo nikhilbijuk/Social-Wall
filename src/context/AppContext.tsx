@@ -77,13 +77,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             
             if (session?.user && session.user.id) {
                 // If logged in via Google, fetch real user data
-                const userRes = await fetch(`/api/users/details?id=${session.user.id}`);
+                const googleId = session.user.id;
+                const userRes = await fetch(`/api/users/details?id=${googleId}`);
                 const userData = await userRes.json();
+                
                 if (userData && !userData.error) {
+                    // MIGRATION: If old anonId exists and is different, migrate posts
+                    const oldAnonId = localStorage.getItem('anonId');
+                    if (oldAnonId && oldAnonId !== googleId) {
+                        fetch('/api/migrate-posts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ oldId: oldAnonId, newId: googleId })
+                        }).then(() => {
+                            // Refresh posts after migration
+                            fetchPosts();
+                        });
+                    }
+
                     // FORCE OVERRIDE GUEST STATE
                     setUserProfile(userData); 
-                    setAnonId(session.user.id);
-                    localStorage.setItem('anonId', session.user.id);
+                    setAnonId(googleId);
+                    localStorage.setItem('anonId', googleId);
                     localStorage.removeItem('pendingPost'); // Clear any pending guest data
                     return; // skip guest auth
                 }

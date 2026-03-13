@@ -40,9 +40,9 @@ export function Header() {
                     <div className="w-8 h-8 bg-[#00A884] rounded-lg rotate-3 group-hover:rotate-0 transition-transform duration-200 shadow-lg shadow-[#00A884]/20 flex items-center justify-center text-white font-black italic">W</div>
                     <span className="font-black text-lg tracking-tighter uppercase grayscale group-hover:grayscale-0 transition-all duration-300">Social_Wall</span>
                 </Link>
-                <div className={cn("hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest", info.color)}>
+                <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest scale-90 sm:scale-100 origin-left", info.color)}>
                     <span>{info.icon}</span>
-                    <span>Mode: {info.label}</span>
+                    <span className="truncate max-w-[100px] sm:max-w-none">Mode: {info.label}</span>
                 </div>
             </div>
 

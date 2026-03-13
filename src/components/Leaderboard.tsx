@@ -31,8 +31,10 @@ export default function LeaderboardView() {
         <div className="flex flex-col p-3 gap-3 bg-white/30 backdrop-blur-md h-full border-l border-black/5 overflow-y-auto custom-scrollbar">
             {/* Header */}
             <div className="flex items-center gap-2 pt-1 pb-2 border-b border-black/5">
-                <span className="text-sm">⚡</span>
-                <h3 className="text-[10px] font-black tracking-[0.2em] text-black/40 uppercase">Today’s energy</h3>
+                <span className="text-sm">{users[0]?.is_fallback ? "🏆" : "⚡"}</span>
+                <h3 className="text-[10px] font-black tracking-[0.2em] text-black/40 uppercase">
+                    {users[0]?.is_fallback ? "All-time leaders" : "Today’s energy"}
+                </h3>
             </div>
 
             {/* Score key - more subtle */}
@@ -49,7 +51,7 @@ export default function LeaderboardView() {
 
                     return (
                         <motion.div
-                            key={user.id ?? user.name}
+                            key={user.id || `rank-${index}`}
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.05 }}
