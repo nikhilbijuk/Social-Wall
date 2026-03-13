@@ -412,13 +412,13 @@ export default function RootPage() {
                     </div>
                     <button
                         onClick={handlePost}
-                        disabled={isSubmitting || (!text.trim() && !file)}
+                        disabled={isUploading || (!text.trim() && !selectedFile)}
                         className={cn(
                             "h-11 px-6 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg active:scale-95",
-                            !text.trim() && !file ? "bg-black/10 text-black/20" : "bg-[#00A884] text-white hover:scale-[1.02] shadow-[#00A884]/20"
+                            !text.trim() && !selectedFile ? "bg-black/10 text-black/20" : "bg-[#00A884] text-white hover:scale-[1.02] shadow-[#00A884]/20"
                         )}
                     >
-                        {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : "Post"}
+                        {isUploading ? <Loader2 className="animate-spin" size={20} /> : "Post"}
                     </button>
                 </div>
             </div>
