@@ -468,12 +468,19 @@ export default function RootPage() {
             </div>
           ))}
           
+          <div ref={messagesEndRef} className="h-2 w-full shrink-0" />
         </div>
 
         <div className="h-4 w-full shrink-0" />
       </div>
+
+      {/* Today's Pulse - Engagement at Bottom */}
+      <div className="px-4 pb-2 bg-transparent z-10">
+         <LivePromptCta />
+      </div>
+
       {canUserPost ? (
-        <div className="z-20 relative">
+        <div className="z-20 relative sticky bottom-0">
           {typingUsers.length > 0 && (
             <div className="absolute -top-6 left-4 flex items-center gap-2">
               <div className="flex gap-0.5">
