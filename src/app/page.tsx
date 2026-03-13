@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { useApp } from '@/context/AppContext';
 import GlassCard from '@/components/ui/GlassCard';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
@@ -349,12 +350,12 @@ export default function RootPage() {
         {/* Load History at TOP */}
         <div ref={loadMoreRef} className="h-20 w-full flex items-center justify-center shrink-0">
           {hasMore ? (
-            <div className="flex flex-col items-center gap-2">
-              <Loader2 className="animate-spin text-[#00A884]" size={24} />
-              <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Synchronizing history...</span>
+            <div className="flex flex-col items-center gap-1.5 opacity-40">
+              <div className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-pulse" />
+              <span className="text-[9px] text-slate-400 uppercase tracking-[0.2em] font-black">History Syncing...</span>
             </div>
           ) : posts.length > 0 ? (
-            <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold opacity-30">Beginning of Stream</span>
+            <span className="text-[9px] text-slate-300 uppercase tracking-[0.2em] font-black opacity-30">Beginning of Stream</span>
           ) : null}
         </div>
 
@@ -364,13 +365,18 @@ export default function RootPage() {
           </div>
         )}
 
-        {/* The Viral Stack: Prompt -> Trending -> Spotlight (24px gap) */}
-        <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto pt-2">
+        {/* The Viral Stack: Since (Trigger) -> Pulse (Active) -> Trending -> Spotlight (24px gap) */}
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="flex flex-col gap-6 w-full max-w-4xl mx-auto pt-2"
+        >
             <SinceYouWereAway />
             <LivePromptCta />
             <TrendingCard />
             <SpotlightCard />
-        </div>
+        </motion.div>
 
         <div className="max-w-4xl mx-auto w-full flex flex-col gap-6 mt-4 pb-20">
           {posts.map((post) => (
