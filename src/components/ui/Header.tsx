@@ -56,7 +56,7 @@ export function Header() {
 
                 <div className="flex items-center gap-2">
                     {userProfile?.name && (
-                        <div className="flex items-center gap-2 pr-3 pl-1.5 py-1 bg-gray-50 rounded-full border border-gray-100 group">
+                        <div className="flex items-center gap-2 pr-2 pl-1.5 py-1 bg-gray-50 rounded-full border border-gray-100 group">
                             <Link href={`/profile?id=${userProfile.id}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                                 <div className="w-6 h-6 rounded-full overflow-hidden bg-white border border-black/5 shrink-0">
                                     <img
@@ -65,20 +65,38 @@ export function Header() {
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
-                                <span className="text-xs font-black uppercase tracking-tighter text-black/60">{userProfile.name}</span>
+                                <span className="text-xs font-black uppercase tracking-tighter text-black/60 truncate max-w-[80px]">{userProfile.name}</span>
                                 {userProfile.is_verified ? (
                                     <span className="text-blue-500 text-[10px]" title="Verified">✔</span>
                                 ) : userProfile.is_trusted ? (
                                     <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 px-1.5 bg-slate-100 rounded border border-slate-200">Connected</span>
-                                ) : null}
+                                ) : (
+                                    <span className="text-[8px] font-bold uppercase tracking-widest text-amber-500 bg-amber-50 px-1.5 rounded border border-amber-100">Guest</span>
+                                )}
                             </Link>
+                            
+                            {!userProfile.is_trusted && (
+                                <button 
+                                    onClick={() => import('next-auth/react').then(m => m.signIn('google'))}
+                                    className="ml-1 px-2 py-1 bg-white border border-gray-200 rounded-lg text-[9px] font-black uppercase tracking-widest text-[#00A884] hover:bg-[#00A884] hover:text-white transition-all shadow-sm flex items-center gap-1.5"
+                                >
+                                    <svg className="w-2.5 h-2.5" viewBox="0 0 24 24">
+                                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="currentColor"/>
+                                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="currentColor"/>
+                                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="currentColor"/>
+                                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="currentColor"/>
+                                    </svg>
+                                    Verify
+                                </button>
+                            )}
+
                             <button
                                 onClick={handleSyncRequest}
                                 disabled={isSyncing}
-                                className="ml-1 p-1 hover:bg-[#00A884]/10 hover:text-[#00A884] transition-all disabled:opacity-50 text-gray-400"
+                                className="ml-0.5 p-1 hover:bg-[#00A884]/10 hover:text-[#00A884] transition-all disabled:opacity-50 text-gray-300"
                                 title="Sync PC with Mobile"
                             >
-                                <Smartphone size={14} className={cn(isSyncing && "animate-pulse text-[#00A884]")} />
+                                <Smartphone size={12} className={cn(isSyncing && "animate-pulse text-[#00A884]")} />
                             </button>
                         </div>
                     )}
@@ -86,10 +104,10 @@ export function Header() {
                     {!userProfile?.is_verified && userProfile?.name && (
                         <button
                             onClick={() => setShowVerificationModal(true)}
-                            className="p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors"
-                            title="Get Verified"
+                            className="p-1.5 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors"
+                            title="Identity Checklist"
                         >
-                            <ShieldCheck size={18} />
+                            <ShieldCheck size={16} />
                         </button>
                     )}
                 </div>

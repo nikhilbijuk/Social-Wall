@@ -382,9 +382,19 @@ export default function RootPage() {
                     <img src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${userProfile?.name || 'Guest'}`} alt="" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#00A884]">
-                      Posting as {userProfile?.name || 'Guest'}
-                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[#00A884]">
+                        Posting as {userProfile?.name || 'Guest'}
+                      </span>
+                      {!userProfile?.is_trusted && userProfile?.name && (
+                        <button 
+                          onClick={() => import('next-auth/react').then(m => m.signIn('google'))}
+                          className="text-[8px] font-bold uppercase tracking-widest text-black/30 hover:text-[#00A884] transition-colors"
+                        >
+                          (Link Google ✨)
+                        </button>
+                      )}
+                    </div>
                     <span className="text-[9px] font-medium text-black/40">Shared inside class only</span>
                   </div>
                 </div>
