@@ -34,9 +34,10 @@ interface GlassCardProps extends HTMLMotionProps<"div"> {
     timestamp?: number;
     edited?: boolean;
     is_viral?: boolean;
+    id?: string;
 }
 
-const GlassCard: React.FC<GlassCardProps> = ({
+const GlassCard: React.FC<GlassCardProps> = memo(({
     className,
     label,
     children,
@@ -52,13 +53,15 @@ const GlassCard: React.FC<GlassCardProps> = ({
     is_verified,
     is_deepfake,
     is_blur,
+    blur_reason,
     createdAt,
     timestamp,
     edited,
     is_viral,
-    ...props
+    id, // assumed id is available in props from spread
+    ...restProps
 }) => {
-    const { userProfile } = useApp();
+    const { userProfile, level, setShowVerificationModal } = useApp();
     const finalUrl = fileUrl || imageUrl || videoUrl;
     const finalType = mediaType || (videoUrl ? 'video' : 'image');
 
@@ -68,7 +71,43 @@ const GlassCard: React.FC<GlassCardProps> = ({
     const [isFullscreen, setIsFullscreen] = useState(false);
 
     const isMe = userProfile?.id && (authorId === userProfile.id);
-    const blurred = shouldBlur({ is_blur }, userProfile);
+    
+    // Optimistic UI state
+    const [optimisticDeepfake, setOptimisticDeepfake] = useState(is_deepfake === 1);
+    const [optimisticBlur, setOptimisticBlur] = useState(is_blur === 1);
+    
+    // Sync with props when they change from server
+    useEffect(() => { setOptimisticDeepfake(is_deepfake === 1); }, [is_deepfake]);
+    useEffect(() => { setOptimisticBlur(is_blur === 1); }, [is_blur]);
+
+    const blurred = shouldBlur({ is_blur: optimisticBlur ? 1 : 0 }, userProfile, level);
+
+    const handleModerate = async (field: 'is_deepfake' | 'is_blur') => {
+        const fallbackId = (restProps as any).id;
+        if (!fallbackId && !id) return; // Need post ID to moderate
+        const postId = (id || fallbackId) as string;
+        
+        const newValue = field === 'is_deepfake' ? !optimisticDeepfake : !optimisticBlur;
+        
+        // Optimistic update
+        if (field === 'is_deepfake') setOptimisticDeepfake(newValue);
+        if (field === 'is_blur') setOptimisticBlur(newValue);
+        
+        try {
+            const res = await fetch('/api/admin/moderate-post', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ postId, field, value: newValue ? 1 : 0 })
+            });
+            if (!res.ok) throw new Error('Failed to moderate');
+        } catch (error) {
+            console.error(error);
+            // Revert on failure
+            if (field === 'is_deepfake') setOptimisticDeepfake(!newValue);
+            if (field === 'is_blur') setOptimisticBlur(!newValue);
+            alert("Failed to moderate post.");
+        }
+    };
 
     useEffect(() => {
         let activeUrl: string | null = null;
@@ -121,15 +160,34 @@ const GlassCard: React.FC<GlassCardProps> = ({
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.2 }}
-            {...props}
+            {...restProps}
         >
-            {is_deepfake === 1 && (
-                <div className="absolute top-0 right-0 p-1 bg-red-500/10 rounded-bl-lg">
-                    <span className="text-[8px] font-black text-red-500 uppercase tracking-tighter">⚠ Deepfake</span>
+            {optimisticDeepfake && (
+                <div className="flex flex-col animate-in fade-in duration-700 ease-in-out">
+                     {/* Layer A - Alert Strip */}
+                     <div className="bg-red-500/10 border-b border-red-500/20 px-3 py-1.5 flex items-center justify-center gap-2">
+                        <span className="text-red-500"><AlertTriangle size={14} /></span>
+                        <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">Content Authenticity Warning</span>
+                     </div>
+                     {/* Layer B - Explanation */}
+                     <div className="bg-red-500/5 px-3 py-1.5 text-center border-b border-red-500/10">
+                        <span className="text-[9px] font-medium text-red-700/80">This media has been flagged by moderation for possible AI manipulation.</span>
+                     </div>
+                     {/* Layer C - Badge */}
+                     <div className="absolute top-2 right-2 p-1 bg-white/90 shadow-sm border border-red-100 rounded flex items-center gap-1 z-10 backdrop-blur-sm">
+                         <AlertTriangle size={10} className="text-red-500" />
+                         <span className="text-[8px] font-black text-red-500 uppercase tracking-tighter">Flagged</span>
+                     </div>
                 </div>
             )}
+            {!optimisticDeepfake && is_viral && (
+                 <div className="absolute top-0 right-0 p-1 bg-orange-500/10 rounded-bl-lg">
+                      <span className="text-[8px] font-black text-orange-500 uppercase tracking-tighter">🔥 Viral</span>
+                 </div>
+            )}
+            
             {/* Header: Avatar, Name, Stats */}
-            <div className="mb-1 flex items-center justify-between">
+            <div className={cn("mb-1 flex items-center justify-between", optimisticDeepfake ? "pt-2 px-2" : "")}>
                 <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-100 border border-black/5 shrink-0">
                         <img
@@ -156,20 +214,20 @@ const GlassCard: React.FC<GlassCardProps> = ({
                             </span>
                         )}
                         {userProfile?.is_admin === 1 && (
-                            <div className="flex items-center gap-1 ml-2">
+                            <div className="flex items-center gap-0.5 ml-2 opacity-10 md:opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); /* Logic to toggle deepfake */ }}
-                                    className={cn("p-1 rounded bg-black/5 hover:bg-red-500/10 text-black/20 hover:text-red-500 transition-colors", is_deepfake === 1 && "text-red-500 bg-red-500/10")}
-                                    title="Mark Deepfake"
+                                    onClick={(e) => { e.stopPropagation(); handleModerate('is_deepfake'); }}
+                                    className={cn("p-1 rounded hover:bg-red-500/10 text-black/40 hover:text-red-500 transition-colors", optimisticDeepfake && "text-red-500")}
+                                    title="Toggle Deepfake Alert"
                                 >
-                                    <AlertTriangle size={10} />
+                                    <AlertTriangle size={12} />
                                 </button>
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); /* Logic to toggle blur */ }}
-                                    className={cn("p-1 rounded bg-black/5 hover:bg-orange-500/10 text-black/20 hover:text-orange-500 transition-colors", is_blur === 1 && "text-orange-500 bg-orange-500/10")}
-                                    title="Blur Content"
+                                    onClick={(e) => { e.stopPropagation(); handleModerate('is_blur'); }}
+                                    className={cn("p-1 rounded hover:bg-orange-500/10 text-black/40 hover:text-orange-500 transition-colors", optimisticBlur && "text-orange-500")}
+                                    title="Toggle Content Blur"
                                 >
-                                    <EyeOff size={10} />
+                                    <EyeOff size={12} />
                                 </button>
                             </div>
                         )}
@@ -185,24 +243,36 @@ const GlassCard: React.FC<GlassCardProps> = ({
             </div>
 
             {/* Content Rendering */}
-            <div className="flex flex-col gap-2 relative">
+            <div className={cn("flex flex-col gap-2 relative", optimisticDeepfake ? "px-2 pb-2" : "")}>
                 {blurred ? (
-                    <div className="flex flex-col items-center justify-center p-6 text-center space-y-2 bg-black/5 rounded-lg border border-dashed border-black/10 backdrop-blur-md w-full">
-                        <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center text-black/40">
-                            <Lock size={18} />
+                    <div className="flex flex-col items-center justify-center p-8 text-center space-y-3 bg-gray-900/90 rounded-xl border border-white/10 backdrop-blur-xl w-full relative overflow-hidden shadow-inner">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/10 to-transparent opacity-50"></div>
+                        
+                        <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white/90 z-10 shadow-lg border border-white/5">
+                            <Lock size={20} />
                         </div>
-                        <p className="text-[10px] font-bold text-black/60 leading-tight">
-                            Content visible to <span className="text-[#00A884]">verified users</span> only
-                        </p>
-                        <p className="text-[9px] text-black/40 italic">
-                            {props.blur_reason || "Sensitive or unverified media content"}
-                        </p>
+                        
+                        <div className="z-10 space-y-1">
+                            <h3 className="text-white font-black tracking-tight text-sm">Verified Access Required</h3>
+                            <p className="text-[11px] text-white/70 max-w-[200px] leading-snug">
+                                {blur_reason || "This content is available only to verified users."}
+                            </p>
+                        </div>
+                        
+                        {!userProfile?.is_verified && (
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); setShowVerificationModal(true); }}
+                                className="z-10 mt-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95"
+                            >
+                                Request Verification
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <>
                         {finalUrl && finalType === 'image' && (
                             <div
-                                className="w-full rounded-md overflow-hidden bg-black/5 flex items-center justify-center relative cursor-pointer border border-gray-100/50 shadow-sm select-none"
+                                className="w-full min-h-[220px] rounded-md overflow-hidden bg-black/5 flex items-center justify-center relative cursor-pointer border border-gray-100/50 shadow-sm select-none"
                                 onClick={() => setIsFullscreen(true)}
                                 onContextMenu={(e) => e.preventDefault()}
                             >
@@ -220,7 +290,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
                         {finalUrl && finalType === 'video' && (
                             !isPlaying ? (
                                 <div
-                                    className="w-full rounded-md overflow-hidden bg-black/5 flex items-center justify-center relative cursor-pointer group border border-gray-100/50 shadow-sm select-none"
+                                    className="w-full min-h-[220px] rounded-md overflow-hidden bg-black/5 flex items-center justify-center relative cursor-pointer group border border-gray-100/50 shadow-sm select-none"
                                     onClick={() => { setIsPlaying(true); setIsFullscreen(true); }}
                                     onContextMenu={(e) => e.preventDefault()}
                                 >
@@ -327,6 +397,8 @@ const GlassCard: React.FC<GlassCardProps> = ({
             )}
         </motion.div>
     );
-};
+});
 
-export default memo(GlassCard);
+GlassCard.displayName = "GlassCard";
+
+export default GlassCard;

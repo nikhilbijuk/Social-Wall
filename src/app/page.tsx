@@ -6,6 +6,9 @@ import GlassCard from '@/components/ui/GlassCard';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import NameModal from '@/components/ui/NameModal';
 import { EmojiBurst } from '@/components/ui/EmojiBurst';
+import { TrendingCard } from '@/components/ui/TrendingCard';
+import { LivePromptCta } from '@/components/ui/LivePromptCta';
+import { SpotlightCard } from '@/components/ui/SpotlightCard';
 import { Send, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import { useUploadThing } from '@/lib/uploadthing';
 import { cn } from '@/lib/utils';
@@ -13,13 +16,33 @@ import { cn } from '@/lib/utils';
 import { canPost, canView } from '@/lib/permissions';
 
 export default function RootPage() {
-  const { posts, handleLike, handleThumbUp, isLoading, loadingProgress, hasMore, loadMorePosts, createPost,
+  const { posts, setPosts, handleLike, handleThumbUp, isLoading, loadingProgress, hasMore, loadMorePosts, createPost,
     anonId, userProfile, setUserProfile, showNameModal, setShowNameModal, pendingPost, setPendingPost, level,
     typingUsers, sendTypingStatus } = useApp();
   const [text, setText] = useState('');
   const [tagSearchTerm, setTagSearchTerm] = useState<string | null>(null);
   const [tagUsers, setTagUsers] = useState<any[]>([]);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Dynamic Placeholder Logic
+  const prompts = [
+    "What are you enjoying right now?",
+    "Drop your shoutout 🔥",
+    "Who deserves applause today?",
+    "Share the vibe 👀",
+    "Best moment so far?",
+    "Rate the vibe right now ✨"
+  ];
+  const [promptIndex, setPromptIndex] = useState(0);
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (isFocused) return;
+    const interval = setInterval(() => {
+      setPromptIndex((prev) => (prev + 1) % prompts.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [isFocused, prompts.length]);
 
   // Send typing status
   useEffect(() => {
@@ -193,23 +216,16 @@ export default function RootPage() {
   const scrollPosRef = useRef<number>(0);
   const scrollHeightRef = useRef<number>(0);
 
-  // Initial scroll to bottom when posts load
+  // Initial scroll to bottom when posts load (Removed aggressive loop to fix lag)
   useEffect(() => {
     if (posts.length > 0 && !isLoading && isInitialLoad.current) {
-      // Pin to bottom for the first 1000ms to combat asynchronous image loading Expansion
-      const interval = setInterval(() => {
-        scrollToBottom('auto');
-      }, 100);
+        // Just one clean timeout layout adjustment instead of interval spam
+        const timeout = setTimeout(() => {
+            scrollToBottom('auto');
+            isInitialLoad.current = false;
+        }, 150);
 
-      const timeout = setTimeout(() => {
-        clearInterval(interval);
-        isInitialLoad.current = false;
-      }, 1000);
-
-      return () => {
-        clearInterval(interval);
-        clearTimeout(timeout);
-      };
+        return () => clearTimeout(timeout);
     }
   }, [posts.length, isLoading]);
 
@@ -347,7 +363,14 @@ export default function RootPage() {
           </div>
         )}
 
-        <div className="max-w-4xl mx-auto w-full flex flex-col gap-4">
+        {/* The Viral Stack: Prompt -> Trending -> Spotlight */}
+        <div className="flex flex-col gap-2 w-full max-w-4xl mx-auto pt-2">
+            <LivePromptCta />
+            <TrendingCard />
+            <SpotlightCard />
+        </div>
+
+        <div className="max-w-4xl mx-auto w-full flex flex-col gap-4 mt-2">
           {posts.map((post) => (
             <div key={post.id} className={cn(
               "flex flex-col gap-1 max-w-[90%] md:max-w-[85%]",
@@ -463,8 +486,10 @@ export default function RootPage() {
                 </div>
               )}
               <textarea
-                placeholder="Type a message..."
+                placeholder={prompts[promptIndex]}
                 value={text}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
                 onChange={(e) => {
                   const newText = e.target.value;
                   setText(newText);

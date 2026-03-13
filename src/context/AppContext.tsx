@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { createPostAction } from '@/app/actions/posts';
+import { getSession } from 'next-auth/react';
 
 import { UserProfile } from '@/lib/permissions';
 
@@ -70,9 +71,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Verify with server on load
-        fetch(`/api/register?anonId=${id}`).then(res => res.json()).then(data => {
+        fetch(`/api/register?anonId=${id}`).then(res => res.json()).then(async data => {
+            // Check Google Session
+            const session = await getSession();
+            
+            if (session?.user && session.user.id) {
+                // If logged in via Google, fetch real user data
+                const userRes = await fetch(`/api/users/details?id=${session.user.id}`);
+                const userData = await userRes.json();
+                if (userData && !userData.error) {
+                    // FORCE OVERRIDE GUEST STATE
+                    setUserProfile(userData); 
+                    setAnonId(session.user.id);
+                    localStorage.setItem('anonId', session.user.id);
+                    localStorage.removeItem('pendingPost'); // Clear any pending guest data
+                    return; // skip guest auth
+                }
+            }
+
             if (data.registered && data.user) {
-                setUserProfile(data.user);
+                // Only set guest profile if no Google session was found
+                const currentSession = await getSession();
+                if (!currentSession?.user) {
+                    setUserProfile(data.user);
+                }
             }
         });
 
@@ -264,28 +286,55 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     const handleLike = async (postId: string, currentLikes: number) => {
+        if (!anonId) return;
+
         // Optimistic UI update
         setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes_count: (p.likes_count || 0) + 1 } : p));
 
         try {
-            await fetch(`/api/posts/${postId}/like`, { method: 'POST' });
+            const res = await fetch(`/api/posts/${postId}/like`, { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: anonId })
+            });
+            
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Failed to like");
+            }
+
             fetchLeaderboard(); // Update stats
-        } catch (err) {
+        } catch (err: any) {
             console.error("Like error:", err);
-            // Rollback if needed
+            alert(err.message);
+            // Rollback
             setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes_count: currentLikes } : p));
         }
     };
 
     const handleThumbUp = async (postId: string, currentThumbs: number) => {
+        if (!anonId) return;
+
         // Optimistic UI update
         setPosts(prev => prev.map(p => p.id === postId ? { ...p, thumbs_up_count: (p.thumbs_up_count || 0) + 1 } : p));
 
         try {
-            await fetch(`/api/posts/${postId}/thumb`, { method: 'POST' });
+            const res = await fetch(`/api/posts/${postId}/thumb`, { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: anonId })
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Failed to thumb up");
+            }
+
             fetchLeaderboard();
-        } catch (err) {
+        } catch (err: any) {
             console.error("Thumb error:", err);
+            alert(err.message);
+            // Rollback
             setPosts(prev => prev.map(p => p.id === postId ? { ...p, thumbs_up_count: currentThumbs } : p));
         }
     };

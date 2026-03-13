@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import VerificationModal from '@/components/ui/VerificationModal';
 
 export function Header() {
-    const { level, userProfile, setShowVerificationModal, generateSyncCode } = useApp();
+    const { level, userProfile, setShowVerificationModal, setShowNameModal, generateSyncCode } = useApp();
     const [syncCode, setSyncCode] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
 
@@ -24,10 +24,10 @@ export function Header() {
 
     const getLevelInfo = (lv: number) => {
         switch (lv) {
-            case 1: return { label: 'Verified Posting', color: 'bg-yellow-500/10 text-yellow-600 border-yellow-200', icon: '🟡' };
-            case 2: return { label: 'Admin Broadcast', color: 'bg-orange-500/10 text-orange-600 border-orange-200', icon: '🟠' };
-            case 3: return { label: 'Lockdown Mode', color: 'bg-red-500/10 text-red-600 border-red-200', icon: '🔴' };
-            default: return { label: 'Open Mode', color: 'bg-green-500/10 text-green-600 border-green-200', icon: '🟢' };
+            case 1: return { label: 'Verified Mode - Only verified users can post', color: 'bg-yellow-500/10 text-yellow-600 border-yellow-200', icon: '🟡' };
+            case 2: return { label: 'Broadcast Session - Restricted visibility active', color: 'bg-orange-500/10 text-orange-600 border-orange-200', icon: '🟠' };
+            case 3: return { label: 'Admin Lockdown - Wall temporarily restricted', color: 'bg-red-500/10 text-red-600 border-red-200', icon: '🔴' };
+            default: return { label: 'Open Wall - Everyone can participate', color: 'bg-green-500/10 text-green-600 border-green-200', icon: '🟢' };
         }
     };
 
@@ -68,6 +68,8 @@ export function Header() {
                                 <span className="text-xs font-black uppercase tracking-tighter text-black/60">{userProfile.name}</span>
                                 {userProfile.is_verified ? (
                                     <span className="text-blue-500 text-[10px]" title="Verified">✔</span>
+                                ) : userProfile.is_trusted ? (
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 px-1.5 bg-slate-100 rounded border border-slate-200">Connected</span>
                                 ) : null}
                             </Link>
                             <button
@@ -100,6 +102,17 @@ export function Header() {
                         <span className="sm:hidden text-lg">🏆</span>
                         <span className="hidden sm:inline">Leaderboard</span>
                     </Link>
+                    {!userProfile?.name && (
+                         <div className="h-4 w-px bg-gray-200 mx-1"></div>
+                    )}
+                    {!userProfile?.name && (
+                         <button
+                           onClick={() => setShowNameModal(true)}
+                           className="text-xs font-black uppercase tracking-widest text-black/60 hover:text-[#00A884] transition-colors"
+                         >
+                            Join Wall
+                         </button>
+                    )}
                     {userProfile?.is_admin && (
                         <Link href="/admin" className="text-[10px] md:text-xs font-black uppercase tracking-widest text-red-500 hover:scale-105 transition-all bg-red-50 px-2 md:px-3 py-1.5 rounded-lg border border-red-100">Admin</Link>
                     )}

@@ -17,10 +17,10 @@ export async function GET(req: Request) {
         let args: any[] = [];
 
         if (id) {
-            query = "SELECT id, name, is_verified, role FROM users WHERE id = ?";
+            query = "SELECT id, name, is_verified, is_admin, is_trusted, role FROM users WHERE id = ?";
             args = [id];
         } else if (tag) {
-            query = "SELECT id, name, is_verified, role FROM users WHERE name = ?";
+            query = "SELECT id, name, is_verified, is_admin, is_trusted, role FROM users WHERE name = ?";
             args = [tag];
         }
 
@@ -34,6 +34,8 @@ export async function GET(req: Request) {
             id: result.rows[0].id,
             name: result.rows[0].name,
             is_verified: result.rows[0].is_verified === 1,
+            is_admin: result.rows[0].is_admin === 1,
+            is_trusted: result.rows[0].is_trusted === 1,
             role: result.rows[0].role,
             tag: String(result.rows[0].name).replace(/\s+/g, "_")
         };

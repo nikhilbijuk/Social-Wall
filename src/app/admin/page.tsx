@@ -14,6 +14,8 @@ export default function AdminPage() {
     const [isUpdating, setIsUpdating] = useState(false);
     const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
+    const [livePromptInput, setLivePromptInput] = useState('');
+    const [currentPrompt, setCurrentPrompt] = useState<string | null>(null);
 
     // Auth state modifications
     const [isAdminState, setIsAdminState] = useState(false);
@@ -37,6 +39,7 @@ export default function AdminPage() {
         if (isAdminState) {
             if (activeTab === 'requests') fetchVerifications();
             else if (activeTab === 'users') fetchUsers();
+            else if (activeTab === 'settings') fetchCurrentPrompt();
         }
     }, [activeTab, isAdminState]);
 
@@ -62,6 +65,41 @@ export default function AdminPage() {
             setLoginError("Failed to connect to server");
         } finally {
             setIsLoggingIn(false);
+        }
+    };
+
+    const fetchCurrentPrompt = async () => {
+        try {
+            const res = await fetch('/api/live-prompt');
+            const data = await res.json();
+            if (data.prompt) {
+                setCurrentPrompt(data.prompt);
+                setLivePromptInput(data.prompt);
+            } else {
+                setCurrentPrompt(null);
+                setLivePromptInput('');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handlePushPrompt = async () => {
+        setIsUpdating(true);
+        try {
+            const res = await fetch('/api/live-prompt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: livePromptInput, userId: userProfile?.id })
+            });
+            if (res.ok) {
+                await fetchCurrentPrompt();
+                alert("Live Prompt updated across all active clients!");
+            } else {
+                alert("Failed to update prompt. Ensure you have admin rights.");
+            }
+        } finally {
+            setIsUpdating(false);
         }
     };
 
@@ -213,6 +251,48 @@ export default function AdminPage() {
             <div className="bg-white rounded-2xl shadow-xl border border-black/5 overflow-hidden">
                 {activeTab === 'settings' && (
                     <div className="p-6 space-y-8">
+                        <div>
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h2 className="text-sm font-black uppercase tracking-widest">Live Prompt Control</h2>
+                                    <p className="text-[10px] uppercase font-bold text-black/40 tracking-widest">Inject a conversation starter to everyone instantly</p>
+                                </div>
+                                {currentPrompt ? (
+                                    <span className="text-[10px] font-black uppercase bg-[#00A884]/10 text-[#00A884] px-2 py-1 rounded tracking-widest flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#00A884] animate-pulse" /> Active</span>
+                                ) : (
+                                    <span className="text-[10px] font-black uppercase bg-black/5 text-black/40 px-2 py-1 rounded tracking-widest">Inactive</span>
+                                )}
+                            </div>
+                            <div className="flex flex-col gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100 relative overflow-hidden">
+                                <textarea 
+                                    value={livePromptInput}
+                                    onChange={(e) => setLivePromptInput(e.target.value)}
+                                    placeholder="e.g. Which event are you heading to next?"
+                                    className="w-full bg-white px-4 py-3 rounded-lg border border-amber-200 focus:border-amber-400 outline-none text-sm font-bold text-amber-900 placeholder:text-amber-300 resize-none z-10"
+                                    rows={2}
+                                />
+                                <div className="flex items-center gap-2 z-10">
+                                    <button 
+                                        onClick={handlePushPrompt}
+                                        disabled={isUpdating}
+                                        className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-colors flex-1 shadow-sm"
+                                    >
+                                        Push to Wall
+                                    </button>
+                                    <button 
+                                        onClick={() => { setLivePromptInput(''); setTimeout(() => document.getElementById('push-prompt-btn')?.click(), 100); }}
+                                        disabled={isUpdating || !currentPrompt}
+                                        className="bg-white hover:bg-red-50 text-red-500 border border-red-100 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-colors"
+                                    >
+                                        Clear
+                                    </button>
+                                    <button id="push-prompt-btn" className="hidden" onClick={handlePushPrompt}></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr className="border-gray-100" />
+
                         <div>
                             <h2 className="text-sm font-black uppercase tracking-widest mb-4">Platform Access Level</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

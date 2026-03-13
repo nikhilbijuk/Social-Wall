@@ -13,6 +13,8 @@ export type UserProfile = {
     name: string;
     is_admin: number | boolean;
     is_verified: number | boolean;
+    is_trusted?: number | boolean;
+    avatar_url?: string | null;
     can_verify: number | boolean;
 };
 
@@ -32,8 +34,12 @@ export function canView(user: UserProfile | null, level: number) {
     return true;
 }
 
-export function shouldBlur(post: { is_blur?: number | boolean }, user: UserProfile | null) {
+export function shouldBlur(post: { is_blur?: number | boolean }, user: UserProfile | null, level?: number) {
+    // Basic rules - Broadcast mode allows trusted users to bypass blur
+    if (level === 2 && !user?.is_verified && !user?.is_admin && !user?.is_trusted) return true;
     if (!post.is_blur) return false;
+    
+    // Explicit manual blurring allows ONLY Verified or Admin
     if (user?.is_verified || user?.is_admin) return false;
     return true;
 }
