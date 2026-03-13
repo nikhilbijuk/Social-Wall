@@ -323,7 +323,7 @@ export default function RootPage() {
   }, [userProfile?.name]);
 
   return (
-    <div className="flex flex-col h-screen max-h-screen relative overflow-hidden">
+    <div className="flex flex-col h-full relative overflow-hidden">
       <LoadingOverlay isLoading={isLoading && posts.length === 0} progress={loadingProgress} />
 
       {/* Name Registration Modal */}
@@ -342,10 +342,9 @@ export default function RootPage() {
         style={{ backgroundImage: 'radial-gradient(#4a4a4a 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
       </div>
 
-      {/* Feed Area */}
       <div
         ref={feedContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 relative z-10 custom-scrollbar flex flex-col"
+        className="flex-1 overflow-y-auto px-4 pb-12 space-y-4 relative z-10 custom-scrollbar flex flex-col"
       >
         {/* Load History at TOP */}
         <div ref={loadMoreRef} className="h-20 w-full flex items-center justify-center shrink-0">
@@ -469,12 +468,9 @@ export default function RootPage() {
             </div>
           ))}
           
-          <div className="mt-4">
-             <LivePromptCta />
-          </div>
         </div>
 
-        <div ref={messagesEndRef} className="h-2 w-full shrink-0" />
+        <div className="h-4 w-full shrink-0" />
       </div>
       {canUserPost ? (
         <div className="z-20 relative">
