@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import { motion, type HTMLMotionProps, AnimatePresence } from 'framer-motion';
 import { UserMiniCard } from './UserMiniCard';
-import { Play, CheckCircle2, X, Lock, AlertTriangle, EyeOff } from 'lucide-react';
+import { Play, CheckCircle2, X, Lock, AlertTriangle, EyeOff, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import dayjs from 'dayjs';
@@ -201,28 +201,29 @@ const GlassCard: React.FC<GlassCardProps> = memo(({
                     <div className="flex flex-col">
                         <div className="flex items-center gap-1.5 leading-none relative">
                             <span 
-                                className="text-[12px] font-black text-[#00A884] uppercase tracking-tight cursor-pointer hover:underline decoration-2 underline-offset-2"
+                                className="text-[12px] font-black text-[#00A884] uppercase tracking-tight cursor-pointer hover:underline decoration-2 underline-offset-4 transition-all hover:text-[#00C49A] group/name flex items-center gap-1"
                                 onClick={(e) => { e.stopPropagation(); setShowIdentityCard(!showIdentityCard); }}
                             >
                                 {authorName || tag || label || 'Guest'}
+                                <Sparkles size={8} className="opacity-0 group-hover/name:opacity-100 transition-opacity" />
                             </span>
                             {is_verified === 1 ? (
-                                <span className="text-blue-500 text-[10px] font-black" title="Verified">✔</span>
+                                <span className="text-blue-500 text-[10px] font-black" title="Verified Voice">✔</span>
                             ) : userProfile?.id === authorId && userProfile?.is_trusted ? (
                                 <span className="text-[8px] font-bold uppercase tracking-tight text-slate-500 px-1.5 bg-slate-100 rounded border border-slate-200">Connected</span>
                             ) : null}
 
                             <AnimatePresence>
                                 {showIdentityCard && (
-                                    <div className="absolute top-full left-0 mt-1 z-[100]">
+                                    <div className="absolute top-full left-0 mt-2 z-[100]">
                                         <UserMiniCard 
                                             user={{
                                                 id: authorId || 'guest',
                                                 name: authorName || 'Guest',
                                                 is_verified: is_verified || false,
-                                                is_admin: 0, // Placeholder
+                                                is_admin: 0,
                                                 recent_activity: "Active in our class today",
-                                                engagement_count: 15 // Mocked for premium feel
+                                                engagement_count: 15
                                             }}
                                             onClose={() => setShowIdentityCard(false)}
                                         />

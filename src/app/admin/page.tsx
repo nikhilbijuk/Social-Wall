@@ -7,7 +7,25 @@ import { Shield, Users, MessageSquare, Settings, CheckCircle2, AlertTriangle, Ey
 import { cn } from '@/lib/utils';
 import Cookies from 'js-cookie';
 
-export default function AdminPage() {
+import { auth } from "@/auth";
+
+export default async function AdminPage() {
+    const session = await auth();
+    
+    // Server-side safety: Hard whitelist
+    const ADMIN_EMAILS = [
+        "nikhilbijuk@gmail.com", // Main Admin
+        "user56@example.com"    // Dev/Testing
+    ];
+
+    if (!session?.user?.email || !ADMIN_EMAILS.includes(session.user.email)) {
+        redirect("/");
+    }
+
+    return <AdminClient />;
+}
+
+function AdminClient() {
     const { userProfile, level, fetchSettings, posts, setPosts } = useApp();
     const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'posts' | 'requests'>('settings');
     const [adminSecret, setAdminSecret] = useState('');

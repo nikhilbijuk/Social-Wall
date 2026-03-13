@@ -365,7 +365,7 @@ export default function RootPage() {
           </div>
         )}
 
-        {/* The Viral Stack: Since (Trigger) -> Pulse (Active) -> Trending -> Spotlight (24px gap) */}
+        {/* The Viral Stack: Since -> Pulse -> INPUT (High priority) -> Trending -> Spotlight */}
         <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -374,6 +374,55 @@ export default function RootPage() {
         >
             <SinceYouWereAway />
             <LivePromptCta />
+            
+            {/* Input Box Moved Here for Immediate Action */}
+            <div className="bg-white/40 backdrop-blur-xl border border-white/40 rounded-3xl p-4 shadow-xl mb-2">
+                <div className="flex items-center gap-3 mb-3 px-1">
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-white/50 border border-white/20">
+                    <img src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${userProfile?.name || 'Guest'}`} alt="" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#00A884]">
+                      Posting as {userProfile?.name || 'Guest'}
+                    </span>
+                    <span className="text-[9px] font-medium text-black/40">Shared inside class only</span>
+                  </div>
+                </div>
+
+                <div className="flex items-end gap-2">
+                    <div className="flex-1 bg-white/60 rounded-2xl flex flex-col border border-white/40 focus-within:border-[#00A884]/30 shadow-sm transition-all">
+                        <textarea
+                            placeholder={prompts[promptIndex]}
+                            value={text}
+                            onFocus={() => setIsFocused(true)}
+                            onBlur={() => setIsFocused(false)}
+                            onChange={(e) => {
+                                setText(e.target.value);
+                                const match = e.target.value.match(/@([a-zA-Z0-9_]*)$/);
+                                setTagSearchTerm(match ? match[1] : null);
+                            }}
+                            className="w-full p-3 px-4 text-sm bg-transparent resize-none focus:outline-none min-h-[44px] max-h-[120px] scrollbar-hide"
+                            rows={1}
+                            onInput={(e) => {
+                                const target = e.target as HTMLTextAreaElement;
+                                target.style.height = 'inherit';
+                                target.style.height = `${target.scrollHeight}px`;
+                            }}
+                        />
+                    </div>
+                    <button
+                        onClick={handlePost}
+                        disabled={isSubmitting || (!text.trim() && !file)}
+                        className={cn(
+                            "h-11 px-6 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg active:scale-95",
+                            !text.trim() && !file ? "bg-black/10 text-black/20" : "bg-[#00A884] text-white hover:scale-[1.02] shadow-[#00A884]/20"
+                        )}
+                    >
+                        {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : "Post"}
+                    </button>
+                </div>
+            </div>
+
             <TrendingCard />
             <SpotlightCard />
         </motion.div>
@@ -507,7 +556,7 @@ export default function RootPage() {
                   <span className="text-[10px] font-medium text-black/40">Visible to your class</span>
                 </div>
               )}
-
+ 
               <textarea
                 placeholder={prompts[promptIndex]}
                 value={text}
@@ -516,15 +565,8 @@ export default function RootPage() {
                 onChange={(e) => {
                   const newText = e.target.value;
                   setText(newText);
-
-                  // Extract mentions at the end of the current typing cursor
-                  // A simple regex approach to match @ followed by letters/numbers at the very end
                   const match = newText.match(/@([a-zA-Z0-9_]*)$/);
-                  if (match) {
-                    setTagSearchTerm(match[1]);
-                  } else {
-                    setTagSearchTerm(null);
-                  }
+                  setTagSearchTerm(match ? match[1] : null);
                 }}
                 className="w-full p-2.5 px-4 text-sm resize-none focus:outline-none bg-transparent min-h-[44px] max-h-[120px] scrollbar-hide"
                 rows={1}

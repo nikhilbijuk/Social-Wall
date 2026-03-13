@@ -127,17 +127,11 @@ export function LivePromptCta() {
                                                 if (input) {
                                                     input.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                                     input.focus();
-                                                    // Add a small delay for the scroll to finish
-                                                    setTimeout(() => {
-                                                        const choiceTxt = ['😄 Chill', '🔥 Ready', '😵 Busy', '😴 Sleepy'][votedIndex || 0];
-                                                        // We can't easily set value of unmanaged textarea from here without context, 
-                                                        // but focusing it is already a strong bridge.
-                                                    }, 500);
                                                 }
                                             }}
                                             className="text-[11px] font-black uppercase tracking-[0.15em] text-[#92400E] flex items-center gap-2 hover:translate-x-1 transition-transform"
                                         >
-                                            Want to say why? <span className="text-lg">➡️</span>
+                                            Say what you think <span className="text-lg">➡️</span>
                                         </button>
                                     </motion.div>
                                 )}
