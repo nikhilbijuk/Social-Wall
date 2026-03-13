@@ -30,24 +30,24 @@ export function TrendingCard() {
 
     useEffect(() => {
         fetchTrending();
-        // Poll every 20 seconds
-        const interval = setInterval(fetchTrending, 20000);
+        // Poll every 4 minutes for campus daily rhythm
+        const interval = setInterval(fetchTrending, 240000);
         return () => clearInterval(interval);
     }, []);
 
     if (!isVisible) return null;
 
     return (
-        <div className="w-full max-w-xl mx-auto mt-2 mb-4 animate-in slide-in-from-top-4 fade-in duration-500 relative z-20">
-             <div className="rounded-xl p-3 bg-white/95 backdrop-blur-md shadow-lg border border-[#00A884]/20 relative overflow-hidden group animate-pulse-subtle">
+        <div className="w-full max-w-xl mx-auto mt-2 mb-6 animate-in slide-in-from-top-4 fade-in duration-500 relative z-20">
+             <div className="rounded-xl p-4 bg-white/95 backdrop-blur-md shadow-lg border border-[#00A884]/20 relative overflow-hidden group animate-pulse-subtle">
                  {/* Premium subtle gradient background */}
                  <div className="absolute inset-0 bg-gradient-to-br from-[#00A884]/5 to-transparent pointer-events-none" />
                  
-                 <div className="flex items-center justify-between mb-1 relative z-10">
+                 <div className="flex items-center justify-between mb-3 relative z-10">
                      <div className="flex items-center gap-1.5">
                          <span className="text-sm">🔥</span>
                          <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">
-                             Trending Right Now
+                             Popular Today
                          </span>
                      </div>
                      <span className="text-[9px] font-medium text-black/40">
@@ -56,7 +56,7 @@ export function TrendingCard() {
                  </div>
 
                  {trending ? (
-                     <div className="flex items-start gap-3 mt-2 relative z-10 transition-all">
+                     <div className="flex items-start gap-3 mt-3 relative z-10 transition-all">
                          <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-black/5 bg-gray-50">
                              <img 
                                 src={`https://api.dicebear.com/9.x/avataaars/svg?seed=${trending.user_id}`} 

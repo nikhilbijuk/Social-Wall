@@ -12,7 +12,7 @@ export async function GET() {
             SELECT *,
             (likes_count * 3 + thumbs_up_count * 2) AS score
             FROM posts
-            WHERE created_at > datetime('now', '-30 minutes')
+            WHERE created_at > datetime('now', '-24 hours')
               AND (is_blur IS NULL OR is_blur = 0)
               AND (is_deepfake IS NULL OR is_deepfake = 0)
             ORDER BY score DESC, created_at DESC

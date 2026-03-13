@@ -11,6 +11,7 @@ import { LivePromptCta } from '@/components/ui/LivePromptCta';
 import { SpotlightCard } from '@/components/ui/SpotlightCard';
 import { Send, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import { useUploadThing } from '@/lib/uploadthing';
+import { SinceYouWereAway } from '@/components/ui/SinceYouWereAway';
 import { cn } from '@/lib/utils';
 
 import { canPost, canView } from '@/lib/permissions';
@@ -363,14 +364,15 @@ export default function RootPage() {
           </div>
         )}
 
-        {/* The Viral Stack: Prompt -> Trending -> Spotlight */}
-        <div className="flex flex-col gap-2 w-full max-w-4xl mx-auto pt-2">
+        {/* The Viral Stack: Prompt -> Trending -> Spotlight (24px gap) */}
+        <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto pt-2">
+            <SinceYouWereAway />
             <LivePromptCta />
             <TrendingCard />
             <SpotlightCard />
         </div>
 
-        <div className="max-w-4xl mx-auto w-full flex flex-col gap-4 mt-2">
+        <div className="max-w-4xl mx-auto w-full flex flex-col gap-6 mt-4 pb-20">
           {posts.map((post) => (
             <div key={post.id} className={cn(
               "flex flex-col gap-1 max-w-[90%] md:max-w-[85%]",
@@ -485,6 +487,21 @@ export default function RootPage() {
                   </button>
                 </div>
               )}
+              
+              {userProfile?.name && (
+                <div className="px-4 py-1.5 flex items-center gap-1.5 opacity-50">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-black/60">Posting as</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-black/80">{userProfile.name}</span>
+                  {userProfile.is_verified ? (
+                    <span className="text-blue-500 text-[9px]">✔</span>
+                  ) : userProfile.is_trusted ? (
+                    <span className="text-[8px] font-bold uppercase tracking-tight text-slate-500 px-1 bg-slate-100 rounded border border-slate-200">Connected</span>
+                  ) : null}
+                  <span className="mx-1.5 w-1 h-1 rounded-full bg-black/20" />
+                  <span className="text-[10px] font-medium text-black/40">Visible to your class</span>
+                </div>
+              )}
+
               <textarea
                 placeholder={prompts[promptIndex]}
                 value={text}

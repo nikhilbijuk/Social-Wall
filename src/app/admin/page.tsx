@@ -304,11 +304,15 @@ export default function AdminPage() {
                                 ].map((item) => (
                                     <button
                                         key={item.lv}
-                                        onClick={() => updateLevel(item.lv)}
+                                        onClick={() => {
+                                            if (confirm(`Change wall mode to ${item.label}? This affects all active classmates.`)) {
+                                                updateLevel(item.lv);
+                                            }
+                                        }}
                                         disabled={isUpdating}
                                         className={cn(
                                             "flex flex-col p-4 rounded-xl border-2 transition-all text-left group",
-                                            level === item.lv ? `border-black bg-black text-white` : `border-transparent bg-gray-50 hover:bg-white`
+                                            level === item.lv ? `border-black bg-black text-white shadow-lg` : `border-transparent bg-gray-50 hover:bg-white`
                                         )}
                                     >
                                         <div className="flex items-center gap-2 mb-1">

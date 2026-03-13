@@ -12,7 +12,7 @@ export async function GET() {
                 SELECT p.*, u.name as author_name, u.is_verified, u.is_admin, u.is_trusted, u.avatar_url
                 FROM posts p
                 LEFT JOIN users u ON p.user_id = u.id
-                WHERE p.created_at > datetime('now', '-20 minutes')
+                WHERE p.created_at > datetime('now', '-24 hours')
                   AND (p.is_blur IS NULL OR p.is_blur = 0)
                   AND (p.is_deepfake IS NULL OR p.is_deepfake = 0)
                 LIMIT 30

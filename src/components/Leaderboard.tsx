@@ -31,15 +31,14 @@ export default function LeaderboardView() {
         <div className="flex flex-col p-3 gap-3 bg-white/30 backdrop-blur-md h-full border-l border-black/5 overflow-y-auto custom-scrollbar">
             {/* Header */}
             <div className="flex items-center gap-2 pt-1 pb-2 border-b border-black/5">
-                <Trophy size={14} className="text-[#00A884]" />
-                <h3 className="text-[10px] font-black tracking-[0.2em] text-black/40 uppercase">Leaderboard</h3>
+                <span className="text-sm">⚡</span>
+                <h3 className="text-[10px] font-black tracking-[0.2em] text-black/40 uppercase">Today’s energy</h3>
             </div>
 
-            {/* Score key */}
-            <div className="flex gap-3 px-1 pb-1">
-                <span className="text-[9px] font-black text-red-400 uppercase tracking-wider">❤️ ×3</span>
-                <span className="text-[9px] font-black text-blue-400 uppercase tracking-wider">👍 ×2</span>
-                <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">📝 ×1</span>
+            {/* Score key - more subtle */}
+            <div className="flex gap-3 px-1 pb-1 opacity-40">
+                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">❤️ Active</span>
+                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">📝 Sharing</span>
             </div>
 
             {/* User rows */}

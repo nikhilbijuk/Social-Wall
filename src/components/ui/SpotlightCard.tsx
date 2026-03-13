@@ -27,7 +27,7 @@ export function SpotlightCard() {
         };
 
         fetchSpotlight();
-        const interval = setInterval(fetchSpotlight, 120000); // Check every 2 minutes
+        const interval = setInterval(fetchSpotlight, 600000); // Check every 10 minutes for campus rhythm
         return () => clearInterval(interval);
     }, []);
 
@@ -43,19 +43,19 @@ export function SpotlightCard() {
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
                 className="max-w-4xl mx-auto w-full mb-3"
             >
-                <div className="relative overflow-hidden rounded-[24px] bg-white/70 backdrop-blur-xl border border-white p-1 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.06)] group">
+                <div className="relative overflow-hidden rounded-[24px] bg-white/70 backdrop-blur-xl border border-white p-0 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.06)] group">
                     
                     {/* Subtle outer glow that rotates slightly on hover via CSS classes */}
                     <div className="absolute -inset-[50%] opacity-20 bg-[conic-gradient(from_0deg,transparent_0_340deg,white_360deg)] animate-[spin_8s_linear_infinite] pointer-events-none" />
                     
-                    <div className="relative bg-gradient-to-br from-white to-[#F8FAFC] rounded-[20px] p-5 border border-indigo-50/50">
+                    <div className="relative bg-gradient-to-br from-white to-[#F8FAFC] rounded-[24px] p-4 border border-indigo-50/50">
                         {/* Header Label */}
                         <div className="flex items-center gap-2 mb-3">
                             <div className="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100 shrink-0">
                                 <Sparkles size={12} className="text-indigo-500" />
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">
-                                Spotlight Right Now
+                                Student Spotlight
                             </span>
                             
                             {spotlight.is_verified ? (

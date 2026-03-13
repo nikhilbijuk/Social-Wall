@@ -2,7 +2,8 @@ import * as React from 'react';
 import { memo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
-import { motion, type HTMLMotionProps } from 'framer-motion';
+import { motion, type HTMLMotionProps, AnimatePresence } from 'framer-motion';
+import { UserMiniCard } from './UserMiniCard';
 import { Play, CheckCircle2, X, Lock, AlertTriangle, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -69,6 +70,7 @@ const GlassCard: React.FC<GlassCardProps> = memo(({
     const [videoBlobUrl, setVideoBlobUrl] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [showIdentityCard, setShowIdentityCard] = useState(false);
 
     const isMe = userProfile?.id && (authorId === userProfile.id);
     
@@ -196,18 +198,42 @@ const GlassCard: React.FC<GlassCardProps> = memo(({
                             className="w-full h-full object-cover"
                         />
                     </div>
-                    <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-bold text-[#00A884] uppercase tracking-wide">
-                            {authorName || tag || label || 'Guest'}
-                        </span>
-                        {is_verified === 1 && (
-                            <span className="text-blue-500 text-[10px] font-black" title="Verified">✔</span>
-                        )}
-                        {is_viral && (
-                            <span className="bg-orange-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full animate-pulse flex items-center gap-1 shadow-sm">
-                                🔥 VIRAL
+                    <div className="flex flex-col">
+                        <div className="flex items-center gap-1.5 leading-none relative">
+                            <span 
+                                className="text-[12px] font-black text-[#00A884] uppercase tracking-tight cursor-pointer hover:underline decoration-2 underline-offset-2"
+                                onClick={(e) => { e.stopPropagation(); setShowIdentityCard(!showIdentityCard); }}
+                            >
+                                {authorName || tag || label || 'Guest'}
                             </span>
+                            {is_verified === 1 ? (
+                                <span className="text-blue-500 text-[10px] font-black" title="Verified">✔</span>
+                            ) : userProfile?.id === authorId && userProfile?.is_trusted ? (
+                                <span className="text-[8px] font-bold uppercase tracking-tight text-slate-500 px-1.5 bg-slate-100 rounded border border-slate-200">Connected</span>
+                            ) : null}
+
+                            <AnimatePresence>
+                                {showIdentityCard && (
+                                    <div className="absolute top-full left-0 mt-1 z-[100]">
+                                        <UserMiniCard 
+                                            user={{
+                                                id: authorId || 'guest',
+                                                name: authorName || 'Guest',
+                                                is_verified: is_verified || false,
+                                                is_admin: 0, // Placeholder
+                                                recent_activity: "Active in our class today",
+                                                engagement_count: 15 // Mocked for premium feel
+                                            }}
+                                            onClose={() => setShowIdentityCard(false)}
+                                        />
+                                    </div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                        {(createdAt || timestamp) && dayjs().diff(dayjs(createdAt || timestamp), 'hour') < 24 && (
+                            <span className="text-[9px] font-bold text-black/30 uppercase tracking-widest mt-0.5">Active today</span>
                         )}
+                    </div>
                         {edited && (
                             <span className="text-[8px] text-black/30 font-medium lowercase">
                                 • edited
@@ -240,10 +266,9 @@ const GlassCard: React.FC<GlassCardProps> = memo(({
                         </span>
                     </div>
                 )}
-            </div>
 
             {/* Content Rendering */}
-            <div className={cn("flex flex-col gap-2 relative", optimisticDeepfake ? "px-2 pb-2" : "")}>
+            <div className={cn("flex flex-col gap-3 relative", optimisticDeepfake ? "px-2 pb-2" : "")}>
                 {blurred ? (
                     <div className="flex flex-col items-center justify-center p-8 text-center space-y-3 bg-gray-900/90 rounded-xl border border-white/10 backdrop-blur-xl w-full relative overflow-hidden shadow-inner">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/10 to-transparent opacity-50"></div>
@@ -336,7 +361,7 @@ const GlassCard: React.FC<GlassCardProps> = memo(({
 
                         {content && (
                             <div className="text-sm leading-relaxed text-[#111B21] whitespace-pre-wrap font-sans">
-                                {content.split(/(@[a-zA-Z0-9_]+)/g).map((part, i) => {
+                                {(content || '').split(/(@[a-zA-Z0-9_]+)/g).map((part, i) => {
                                     if (part.startsWith('@') && part.length > 1) {
                                         const username = part.slice(1);
                                         return (
