@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-            <body className={cn(inter.className, "bg-[#EFE7DD] flex flex-col min-h-screen")}>
+            <body className={cn(inter.className, "bg-[#EFE7DD] flex flex-col h-screen overflow-hidden")}>
                 <SessionProvider>
                     <AppProvider>
                         <EmojiBurst />
